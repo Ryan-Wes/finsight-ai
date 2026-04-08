@@ -7,6 +7,10 @@ def create_import(
     source_name: str,
     source_type: str,
     file_format: str,
+    statement_period_start: str | None = None,
+    statement_period_end: str | None = None,
+    due_date: str | None = None,
+    total_amount: float | None = None,
     import_status: str = "uploaded",
     warning_message: str | None = None,
 ) -> int:
@@ -21,10 +25,14 @@ def create_import(
                 source_name,
                 source_type,
                 file_format,
+                statement_period_start,
+                statement_period_end,
+                due_date,
+                total_amount,
                 import_status,
                 warning_message
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 filename,
@@ -32,6 +40,10 @@ def create_import(
                 source_name,
                 source_type,
                 file_format,
+                statement_period_start,
+                statement_period_end,
+                due_date,
+                total_amount,
                 import_status,
                 warning_message,
             ),
@@ -54,6 +66,10 @@ def list_imports():
                 i.source_name,
                 i.source_type,
                 i.file_format,
+                i.statement_period_start,
+                i.statement_period_end,
+                i.due_date,
+                i.total_amount,
                 i.import_status,
                 i.warning_message,
                 i.created_at,

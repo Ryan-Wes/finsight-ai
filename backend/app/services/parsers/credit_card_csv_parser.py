@@ -26,7 +26,7 @@ def detect_transaction_type(description: str) -> str:
     return "purchase"
 
 
-def parse_credit_card_csv(file_bytes: bytes) -> list[dict]:
+def parse_credit_card_csv(file_bytes: bytes, due_date: str | None = None) -> list[dict]:
     decoded_content = file_bytes.decode("utf-8-sig")
     csv_reader = csv.DictReader(StringIO(decoded_content))
 
@@ -41,6 +41,9 @@ def parse_credit_card_csv(file_bytes: bytes) -> list[dict]:
         installment_current, installment_total = extract_installment_info(raw_description)
         transaction_type = detect_transaction_type(raw_description)
         normalized_description = normalize_description(raw_description)
+
+        competency_month = due_date[:7] if due_date else transaction_date[:7]
+
         transaction_hash = generate_transaction_hash(
             transaction_date=transaction_date,
             raw_description=raw_description,
@@ -51,7 +54,7 @@ def parse_credit_card_csv(file_bytes: bytes) -> list[dict]:
 
         transaction = {
             "transaction_date": transaction_date,
-            "competency_month": transaction_date[:7],
+            "competency_month": competency_month,
             "raw_description": raw_description,
             "normalized_description": normalized_description,
             "amount": signed_amount,
