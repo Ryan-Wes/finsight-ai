@@ -12,6 +12,7 @@ def get_transactions(
     month: Optional[str] = Query(None),
     transaction_type: Optional[str] = Query(None, alias="type"),
     source: Optional[str] = Query(None),
+    sort: str = Query("date_desc"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
@@ -19,6 +20,7 @@ def get_transactions(
         month=month,
         transaction_type=transaction_type,
         source=source,
+        sort=sort,
         limit=limit,
         offset=offset,
     )

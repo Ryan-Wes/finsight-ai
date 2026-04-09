@@ -83,14 +83,14 @@ def list_transactions(
     month: str | None = None,
     transaction_type: str | None = None,
     source: str | None = None,
+    sort: str = "date_desc",
     limit: int = 50,
     offset: int = 0,
-) -> list[dict]:
+) -> dict:
     with get_connection() as connection:
         cursor = connection.cursor()
 
-        query = """
-            SELECT *
+        base_query = """
             FROM transactions
             WHERE 1=1
         """
@@ -98,27 +98,48 @@ def list_transactions(
         params = []
 
         if month:
-            query += " AND competency_month = ?"
+            base_query += " AND competency_month = ?"
             params.append(month)
 
         if transaction_type:
-            query += " AND transaction_type = ?"
+            base_query += " AND transaction_type = ?"
             params.append(transaction_type)
 
         if source:
-            query += " AND source_type = ?"
+            base_query += " AND source_type = ?"
             params.append(source)
 
-        query += " ORDER BY transaction_date DESC, id DESC"
-        query += " LIMIT ? OFFSET ?"
+        sort_map = {
+            "date_desc": "transaction_date DESC, id DESC",
+            "date_asc": "transaction_date ASC, id ASC",
+            "amount_desc": "absolute_amount DESC, id DESC",
+            "amount_asc": "absolute_amount ASC, id ASC",
+        }
 
-        params.append(limit)
-        params.append(offset)
+        order_by = sort_map.get(sort, "transaction_date DESC, id DESC")
 
-        cursor.execute(query, params)
+        count_query = "SELECT COUNT(*) " + base_query
+        cursor.execute(count_query, params)
+        total = cursor.fetchone()[0]
 
+        data_query = "SELECT * " + base_query
+        data_query += f" ORDER BY {order_by}"
+        data_query += " LIMIT ? OFFSET ?"
+
+        data_params = params + [limit, offset]
+
+        cursor.execute(data_query, data_params)
         rows = cursor.fetchall()
-        return [dict(row) for row in rows]
+
+        items = [dict(row) for row in rows]
+
+        return {
+            "items": items,
+            "limit": limit,
+            "offset": offset,
+            "count": len(items),
+            "total": total,
+        }
 
 
 def get_transactions_summary() -> dict:
