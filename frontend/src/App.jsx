@@ -16,15 +16,31 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  // ✅ NOVO: estado de filtros
+  const [filters, setFilters] = useState({
+    month: '',
+    type: '',
+    source: '',
+  })
+
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true)
         setError('')
 
+        // ✅ monta query dinamicamente
+        const queryParams = new URLSearchParams()
+
+        if (filters.month) queryParams.append('month', filters.month)
+        if (filters.type) queryParams.append('type', filters.type)
+        if (filters.source) queryParams.append('source', filters.source)
+
+        const queryString = queryParams.toString()
+
         const [transactionsResponse, summaryResponse] = await Promise.all([
-          fetch('http://127.0.0.1:8000/api/transactions'),
-          fetch('http://127.0.0.1:8000/api/summary/consolidated'),
+          fetch(`http://127.0.0.1:8000/api/transactions?${queryString}`),
+          fetch(`http://127.0.0.1:8000/api/summary/consolidated?${queryString}`),
         ])
 
         if (!transactionsResponse.ok || !summaryResponse.ok) {
@@ -44,7 +60,7 @@ function App() {
     }
 
     fetchData()
-  }, [])
+  }, [filters]) // ✅ AGORA REAGE AOS FILTROS
 
   const typeLabels = {
     pix_out: 'Pix Enviado',
@@ -59,10 +75,10 @@ function App() {
   }
 
   const chartData =
-    summary?.by_type?.map((item) => ({
-      name: typeLabels[item.transaction_type] || item.transaction_type,
-      value: item.expense_total,
-    })) || []
+  summary?.by_type?.map((item) => ({
+    name: typeLabels[item.transaction_type] || item.transaction_type,
+    value: item.income_total + item.expense_total,
+  })) || []
 
   const sourceLabels = {
     bank_account: 'Conta Bancária',
@@ -70,12 +86,10 @@ function App() {
   }
 
   const sourceChartData =
-    summary?.by_source_type?.map((item) => ({
-      name: sourceLabels[item.source_type] || item.source_type,
-      value: item.expense_total,
-    })) || []
-
-
+  summary?.by_source_type?.map((item) => ({
+    name: sourceLabels[item.source_type] || item.source_type,
+    value: item.income_total + item.expense_total,
+  })) || []
 
   if (loading) return <h1>Carregando...</h1>
   if (error) return <h1>{error}</h1>
@@ -88,6 +102,44 @@ function App() {
           <h1>FinSight AI</h1>
           <p>Análise real do seu fluxo financeiro</p>
         </header>
+
+        {/* 🔥 FILTROS */}
+        <section className="filters">
+          <select
+            value={filters.month}
+            onChange={(e) =>
+              setFilters({ ...filters, month: e.target.value })
+            }
+          >
+            <option value="">Todos os meses</option>
+            <option value="2026-04">Abril 2026</option>
+            <option value="2026-03">Março 2026</option>
+          </select>
+
+          <select
+            value={filters.type}
+            onChange={(e) =>
+              setFilters({ ...filters, type: e.target.value })
+            }
+          >
+            <option value="">Todos os tipos</option>
+            <option value="pix_out">Pix Enviado</option>
+            <option value="pix_in">Pix Recebido</option>
+            <option value="transfer_out">Transferência Enviada</option>
+            <option value="transfer_in">Transferência Recebida</option>
+          </select>
+
+          <select
+            value={filters.source}
+            onChange={(e) =>
+              setFilters({ ...filters, source: e.target.value })
+            }
+          >
+            <option value="">Todas as origens</option>
+            <option value="bank_account">Conta</option>
+            <option value="credit_card">Cartão</option>
+          </select>
+        </section>
 
         {summary && (
           <section className="cards">
@@ -115,10 +167,10 @@ function App() {
         )}
 
         <section className="table-container" style={{ marginBottom: '32px' }}>
-          <h2>Gastos por tipo</h2>
+          <h2>Movimentação por tipo</h2>
 
           <div style={{ width: '100%', height: 300 }}>
-            <ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <XAxis dataKey="name" stroke="#a1a1aa" />
                 <YAxis stroke="#a1a1aa" />
@@ -130,10 +182,10 @@ function App() {
         </section>
 
         <section className="table-container" style={{ marginBottom: '32px' }}>
-          <h2>Gastos por origem</h2>
+          <h2>Movimentação por origem</h2>
 
           <div style={{ width: '100%', height: 300 }}>
-            <ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={sourceChartData}>
                 <XAxis dataKey="name" stroke="#a1a1aa" />
                 <YAxis stroke="#a1a1aa" />

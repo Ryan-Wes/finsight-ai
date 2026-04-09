@@ -96,3 +96,17 @@ tbody tr:hover {
 .value {
   font-weight: bold;
 }
+
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.filters select {
+  padding: 8px;
+  background: #141420;
+  color: #fff;
+  border: 1px solid #1f1f2e;
+  border-radius: 8px;
+}
