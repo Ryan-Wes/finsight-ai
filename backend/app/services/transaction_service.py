@@ -98,7 +98,7 @@ def list_transactions(
         params = []
 
         if month:
-            base_query += " AND competency_month = ?"
+            base_query += " AND substr(transaction_date, 1, 7) = ?"
             params.append(month)
 
         if transaction_type:
@@ -191,3 +191,19 @@ def get_transactions_summary() -> dict:
         "ignored_count": summary_row["ignored_count"],
         "by_type": by_type_rows,
     }
+
+
+def get_available_months():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT DISTINCT substr(transaction_date, 1, 7) as month
+        FROM transactions
+        ORDER BY month DESC
+    """)
+
+    months = [row[0] for row in cursor.fetchall()]
+    conn.close()
+
+    return months

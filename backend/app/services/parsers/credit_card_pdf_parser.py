@@ -25,6 +25,21 @@ def parse_ptbr_date(date_str: str, year: str) -> str:
     month = MONTH_MAP[month_abbr]
     return f"{year}-{month}-{day.zfill(2)}"
 
+def parse_credit_card_transaction_date(date_str: str, due_date: str) -> str:
+    day, month_abbr = date_str.strip().upper().split()
+    month = MONTH_MAP[month_abbr]
+
+    due_year = int(due_date[:4])
+    due_month = int(due_date[5:7])
+    transaction_month = int(month)
+
+    transaction_year = due_year
+
+    if due_month == 1 and transaction_month == 12:
+        transaction_year -= 1
+
+    return f"{transaction_year}-{month}-{day.zfill(2)}"
+
 
 def extract_installment_info(description: str) -> tuple[int | None, int | None]:
     match = re.search(r"parcela\s+(\d+)/(\d+)", description, re.IGNORECASE)
@@ -180,10 +195,9 @@ def extract_transaction_section_lines(pdf_text: str) -> list[str]:
 def parse_credit_card_pdf(pdf_text: str) -> list[dict]:
     metadata = extract_statement_metadata(pdf_text)
     due_date = metadata["due_date"]
-    due_year = due_date[:4] if due_date else None
     competency_month = due_date[:7] if due_date else None
 
-    if not due_year:
+    if not due_date:
         return []
 
     lines = extract_transaction_section_lines(pdf_text)
@@ -235,13 +249,18 @@ def parse_credit_card_pdf(pdf_text: str) -> list[dict]:
             if not raw_description:
                 continue
 
-            transaction_date = parse_ptbr_date(raw_date, due_year)
+            transaction_date = parse_credit_card_transaction_date(raw_date, due_date)
             transaction_type = detect_transaction_type(raw_description)
 
             signed_amount = -abs(amount)
             direction = "out"
-            is_ignored_in_spending = 0
 
+            # Regime de caixa:
+            # compra na fatura é registro analítico, mas não é saída real de caixa
+            is_ignored_in_spending = 1
+
+            # se algum dia aparecer linha de pagamento dentro da fatura,
+            # continua ignorado também
             if transaction_type == "credit_card_payment":
                 is_ignored_in_spending = 1
 
@@ -287,3 +306,4 @@ def parse_credit_card_pdf(pdf_text: str) -> list[dict]:
         i += 1
 
     return transactions
+

@@ -45,7 +45,9 @@ def consolidate_transactions(
                 real_income += absolute_amount
 
         elif direction == "out":
-            total_expenses += absolute_amount
+            if not is_ignored_in_spending:
+                total_expenses += absolute_amount
+
             expense_transactions.append(transaction)
 
             if not is_ignored_in_spending and not is_internal_transfer:

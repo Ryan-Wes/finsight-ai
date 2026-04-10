@@ -24,3 +24,8 @@ def get_transactions(
         limit=limit,
         offset=offset,
     )
+
+@router.get("/transactions/months")
+def get_available_months():
+    months = transaction_service.get_available_months()
+    return {"months": months}

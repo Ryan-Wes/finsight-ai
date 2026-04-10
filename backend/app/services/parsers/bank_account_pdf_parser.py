@@ -102,7 +102,7 @@ def clean_raw_description(raw_description: str) -> str:
 def detect_bank_transaction_type(description: str) -> str:
     normalized = normalize_description(description)
 
-    if "pagamento de fatura" in normalized:
+    if "fatura" in normalized and "pagamento" in normalized:
         return "credit_card_bill_payment"
 
     if normalized.startswith("transferencia recebida"):
@@ -134,16 +134,13 @@ def build_flags(transaction_type: str) -> tuple[int, int]:
     is_internal_transfer = 0
 
     if transaction_type in {
-        "credit_card_bill_payment",
         "investment_application",
         "investment_redemption",
     }:
         is_ignored_in_spending = 1
 
-    if transaction_type == "credit_card_bill_payment":
-        is_internal_transfer = 1
-
     return is_ignored_in_spending, is_internal_transfer
+
 
 
 def extract_statement_lines(pdf_text: str) -> list[str]:
