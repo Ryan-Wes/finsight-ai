@@ -2,12 +2,30 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import '../index.css'
 
+const CATEGORY_OPTIONS = [
+  'alimentacao',
+  'mercado',
+  'compras',
+  'transporte',
+  'carro',
+  'roupas',
+  'saude',
+  'casa',
+  'assinaturas',
+  'lazer',
+  'investimentos',
+  'movimentacoes',
+  'outros',
+  '__custom__',
+]
+
 function TransactionsPage() {
   const [transactions, setTransactions] = useState([])
   const [months, setMonths] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [total, setTotal] = useState(0)
+  const [savingId, setSavingId] = useState(null)
 
   const [filters, setFilters] = useState({
     month: '',
@@ -19,6 +37,10 @@ function TransactionsPage() {
     limit: 50,
     offset: 0,
   })
+
+  const [selectedTransaction, setSelectedTransaction] = useState(null)
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [customCategory, setCustomCategory] = useState('')
 
   const transactionTypeLabels = {
     purchase: 'Compra Cartão',
@@ -38,6 +60,23 @@ function TransactionsPage() {
   const sourceLabels = {
     bank_account: 'Conta',
     credit_card: 'Cartão',
+  }
+
+  const categoryLabels = {
+    alimentacao: 'Alimentação',
+    mercado: 'Mercado',
+    compras: 'Compras',
+    transporte: 'Transporte',
+    carro: 'Carro',
+    roupas: 'Roupas',
+    saude: 'Saúde',
+    casa: 'Casa',
+    assinaturas: 'Assinaturas',
+    lazer: 'Lazer',
+    investimentos: 'Investimentos',
+    movimentacoes: 'Movimentações',
+    outros: 'Outros',
+    __custom__: 'Nova categoria personalizada',
   }
 
   useEffect(() => {
@@ -134,6 +173,77 @@ function TransactionsPage() {
     return `${day}/${month}/${year}`
   }
 
+  function formatCurrency(value) {
+    return Number(value).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    })
+  }
+
+  function openEditModal(transaction) {
+    setSelectedTransaction(transaction)
+    setSelectedCategory(transaction.category || 'outros')
+  }
+
+  function closeEditModal() {
+    setSelectedTransaction(null)
+    setSelectedCategory('')
+    setCustomCategory('')
+  }
+
+  async function saveCategory() {
+    const finalCategory =
+      selectedCategory === '__custom__'
+        ? customCategory.trim().toLowerCase()
+        : selectedCategory
+
+    if (!finalCategory) {
+      setError('Digite o nome da nova categoria')
+      return
+    }
+
+    try {
+      setSavingId(selectedTransaction.id)
+      setError('')
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/transactions/${selectedTransaction.id}/category`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            category: finalCategory,
+          }),
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Erro ao atualizar categoria')
+      }
+
+      setTransactions((prevTransactions) =>
+        prevTransactions.map((transaction) =>
+          transaction.id === selectedTransaction.id
+            ? {
+              ...transaction,
+              category: finalCategory,
+              category_source: 'manual',
+              category_reviewed: 1,
+            }
+            : transaction
+        )
+      )
+
+      closeEditModal()
+    } catch (err) {
+      setError(err.message || 'Erro ao salvar categoria')
+    } finally {
+      setSavingId(null)
+    }
+  }
+
   const currentPage = useMemo(() => {
     return Math.floor(pagination.offset / pagination.limit) + 1
   }, [pagination])
@@ -168,11 +278,10 @@ function TransactionsPage() {
       <div className="container">
         <header className="header">
           <h1>Transações</h1>
-          <p>Histórico completo com paginação</p>
-
+          <p>Visualize, filtre e revise categorias das transações</p>
           <div style={{ marginTop: '16px' }}>
-            <Link to="/" style={{ color: '#a78bfa', textDecoration: 'none' }}>
-              ← Voltar ao dashboard
+            <Link to="/" className="filter-button">
+              Voltar para dashboard
             </Link>
           </div>
         </header>
@@ -183,7 +292,6 @@ function TransactionsPage() {
             onChange={(e) => handleFilterChange('month', e.target.value)}
           >
             <option value="">Todos os meses</option>
-
             {months.map((month) => (
               <option key={month} value={month}>
                 {formatMonthLabel(month)}
@@ -196,16 +304,11 @@ function TransactionsPage() {
             onChange={(e) => handleFilterChange('type', e.target.value)}
           >
             <option value="">Todos os tipos</option>
-            <option value="credit_card_bill_payment">Fatura Cartão</option>
-            <option value="purchase">Compra no Cartão</option>
-            <option value="pix_out">Pix Enviado</option>
-            <option value="pix_in">Pix Recebido</option>
-            <option value="transfer_out">Transferência Enviada</option>
-            <option value="transfer_in">Transferência Recebida</option>
-            <option value="bill_payment">Boleto</option>
-            <option value="investment_application">Aplicação</option>
-            <option value="investment_redemption">Resgate</option>
-            <option value="refund">Estorno</option>
+            {Object.entries(transactionTypeLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </select>
 
           <select
@@ -213,18 +316,17 @@ function TransactionsPage() {
             onChange={(e) => handleFilterChange('source', e.target.value)}
           >
             <option value="">Todas as origens</option>
-            <option value="bank_account">Conta</option>
-            <option value="credit_card">Cartão</option>
+            {Object.entries(sourceLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </select>
         </section>
 
         <section className="table-container">
-          <h2>Transações</h2>
-
-          <p style={{ fontSize: '12px', color: '#a1a1aa', marginBottom: '12px' }}>
-            <span style={{ color: '#dc48f6' }}>●</span> Afeta caixa &nbsp;|&nbsp;
-            <span style={{ color: '#aeaeae' }}>●</span> Não afeta
-          </p>
+          <h2>Lista de transações</h2>
+          <p>Total encontrado: {total}</p>
 
           <table>
             <thead>
@@ -233,97 +335,163 @@ function TransactionsPage() {
                 <th>Descrição</th>
                 <th>Tipo</th>
                 <th>Origem</th>
-                <th>Caixa</th>
+                <th>Categoria</th>
+                <th>Definição</th>
                 <th>Valor</th>
+                <th>Ação</th>
               </tr>
             </thead>
 
             <tbody>
-              {transactions.map((transaction) => {
-                const affectsCash =
-                  Number(transaction.is_ignored_in_spending) === 0 &&
-                  Number(transaction.is_internal_transfer) === 0
-
-                return (
-                  <tr key={transaction.id}>
-                    <td>{formatDate(transaction.transaction_date)}</td>
-                    <td>{transaction.raw_description}</td>
-
-                    <td>
-                      {transactionTypeLabels[transaction.transaction_type] ||
-                        transaction.transaction_type}
-                      <span
-                        style={{
-                          marginLeft: '8px',
-                          color: affectsCash ? '#dc48f6' : '#aeaeae',
-                        }}
-                      >
-                        ●
-                      </span>
-                    </td>
-
-                    <td>
-                      {sourceLabels[transaction.source_type] || transaction.source_type}
-                    </td>
-
-                    <td>{affectsCash ? 'Sim' : 'Não'}</td>
-
-                    <td
-                      className={`value ${
-                        transaction.direction === 'out' ? 'red' : 'green'
-                      }`}
+              {transactions.map((transaction) => (
+                <tr key={transaction.id}>
+                  <td>{formatDate(transaction.transaction_date)}</td>
+                  <td>{transaction.raw_description}</td>
+                  <td>
+                    {transactionTypeLabels[transaction.transaction_type] ||
+                      transaction.transaction_type}
+                  </td>
+                  <td>
+                    {sourceLabels[transaction.source_type] || transaction.source_type}
+                  </td>
+                  <td>
+                    <span
+                      className={
+                        transaction.category === 'outros'
+                          ? 'category-badge category-outros'
+                          : 'category-badge'
+                      }
                     >
-                      {transaction.direction === 'out' ? '-' : '+'} R${' '}
-                      {Number(transaction.absolute_amount).toFixed(2)}
-                    </td>
-                  </tr>
-                )
-              })}
+                      {categoryLabels[transaction.category] || transaction.category || '-'}
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      className={
+                        transaction.category_source === 'manual'
+                          ? 'source-badge source-manual'
+                          : 'source-badge source-auto'
+                      }
+                    >
+                      {transaction.category_source === 'manual' ? 'Manual' : 'Auto'}
+                    </span>
+                  </td>
+                  <td className={transaction.direction === 'in' ? 'green' : 'red'}>
+                    {transaction.direction === 'in' ? '+' : '-'}{' '}
+                    {formatCurrency(transaction.absolute_amount)}
+                  </td>
+                  <td>
+                    <button
+                      className="filter-button"
+                      onClick={() => openEditModal(transaction)}
+                    >
+                      Editar
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: '20px',
-              gap: '12px',
-              flexWrap: 'wrap',
-            }}
-          >
-            <p style={{ color: '#a1a1aa', fontSize: '14px' }}>
-              Página {currentPage} de {totalPages} • {total} transações
-            </p>
+          <div className="pagination">
+            <button
+              className="secondary-button"
+              onClick={() =>
+                setPagination((prev) => ({
+                  ...prev,
+                  offset: Math.max(prev.offset - prev.limit, 0),
+                }))
+              }
+              disabled={pagination.offset === 0}
+            >
+              Anterior
+            </button>
 
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                onClick={() =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    offset: Math.max(prev.offset - prev.limit, 0),
-                  }))
-                }
-                disabled={pagination.offset === 0}
-              >
-                Anterior
-              </button>
+            <span>
+              Página {currentPage} de {totalPages}
+            </span>
 
-              <button
-                onClick={() =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    offset: prev.offset + prev.limit,
-                  }))
-                }
-                disabled={pagination.offset + pagination.limit >= total}
-              >
-                Próxima
-              </button>
-            </div>
+            <button
+              className="secondary-button"
+              onClick={() =>
+                setPagination((prev) => ({
+                  ...prev,
+                  offset: prev.offset + prev.limit,
+                }))
+              }
+              disabled={currentPage >= totalPages}
+            >
+              Próxima
+            </button>
           </div>
         </section>
       </div>
+
+      {selectedTransaction && (
+        <div className="modal-overlay" onClick={closeEditModal}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h2>Editar categoria</h2>
+
+            <div className="modal-content">
+              <p>
+                <strong>Descrição:</strong> {selectedTransaction.raw_description}
+              </p>
+
+              <p>
+                <strong>Categoria atual:</strong>{' '}
+                {categoryLabels[selectedTransaction.category] ||
+                  selectedTransaction.category ||
+                  '-'}
+              </p>
+
+              <p>
+                <strong>Origem:</strong>{' '}
+                {selectedTransaction.category_source === 'manual' ? 'Manual' : 'Automática'}
+              </p>
+
+              <label htmlFor="category-select" className="modal-label">
+                Nova categoria
+              </label>
+
+              <select
+                id="category-select"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="modal-select"
+              >
+                {CATEGORY_OPTIONS.map((category) => (
+                  <option key={category} value={category}>
+                    {categoryLabels[category] || category}
+                  </option>
+                ))}
+              </select>
+              {selectedCategory === '__custom__' && (
+                <input
+                  type="text"
+                  className="modal-input"
+                  placeholder="Digite a nova categoria"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                />
+              )}
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="filter-button"
+                onClick={saveCategory}
+                disabled={savingId === selectedTransaction.id}
+              >
+                {savingId === selectedTransaction.id ? 'Salvando...' : 'Salvar'}
+              </button>
+
+              <button className="secondary-button" onClick={closeEditModal}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

@@ -17,7 +17,7 @@ function App() {
   const [error, setError] = useState('')
   const [months, setMonths] = useState([])
 
-  // ✅ NOVO: estado de filtros
+
   const [filters, setFilters] = useState({
     month: '',
     type: '',
@@ -151,6 +151,7 @@ function App() {
               </option>
             ))}
           </select>
+
 
           <select
             value={filters.type}

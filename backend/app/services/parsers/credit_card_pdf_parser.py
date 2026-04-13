@@ -2,6 +2,7 @@ import re
 
 from app.services.hash_service import generate_transaction_hash
 from app.services.transaction_normalizer import normalize_description
+from app.services.category_service import categorize_transaction
 
 
 MONTH_MAP = {
@@ -285,7 +286,7 @@ def parse_credit_card_pdf(pdf_text: str) -> list[dict]:
                     "absolute_amount": abs(amount),
                     "direction": direction,
                     "transaction_type": transaction_type,
-                    "category": None,
+                    "category": categorize_transaction(raw_description, transaction_type),
                     "source_name": "nubank",
                     "source_type": "credit_card",
                     "file_format": "pdf",

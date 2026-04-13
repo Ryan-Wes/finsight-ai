@@ -148,3 +148,153 @@ button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.filters select {
+  background: #141420;
+  color: #e4e4e7;
+  border: 1px solid #27272a;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.filter-button,
+.secondary-button {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.filter-button {
+  background: #7c3aed;
+  color: white;
+}
+
+.filter-button:hover,
+.secondary-button:hover {
+  opacity: 0.9;
+}
+
+.secondary-button {
+  background: #27272a;
+  color: #e4e4e7;
+}
+
+.category-badge,
+.source-badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.category-badge {
+  background: #1f1f2e;
+  color: #d4d4d8;
+}
+
+.category-outros {
+  background: #3f1d1d;
+  color: #fca5a5;
+}
+
+.source-auto {
+  background: #221a3a;
+  color: #c4b5fd;
+}
+
+.source-manual {
+  background: #163322;
+  color: #86efac;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 999;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 520px;
+  background: #141420;
+  border: 1px solid #27272a;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.modal-card h2 {
+  margin-bottom: 16px;
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-label {
+  font-size: 14px;
+  color: #a1a1aa;
+}
+
+.modal-select {
+  background: #0f0f17;
+  color: #e4e4e7;
+  border: 1px solid #27272a;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.modal-input {
+  background: #0f0f17;
+  color: #e4e4e7;
+  border: 1px solid #27272a;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.checkbox-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e4e4e7;
+  background: #141420;
+  border: 1px solid #27272a;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.checkbox-filter input {
+  accent-color: #7c3aed;
+}

@@ -53,6 +53,8 @@ def create_tables() -> None:
                 direction TEXT NOT NULL,
                 transaction_type TEXT NOT NULL,
                 category TEXT,
+                category_source TEXT NOT NULL DEFAULT 'rule',
+                category_reviewed INTEGER NOT NULL DEFAULT 0,
                 source_name TEXT NOT NULL,
                 source_type TEXT NOT NULL,
                 file_format TEXT NOT NULL,

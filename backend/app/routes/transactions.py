@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Body
 
 from app.services import transaction_service
 
@@ -29,3 +29,14 @@ def get_transactions(
 def get_available_months():
     months = transaction_service.get_available_months()
     return {"months": months}
+
+
+@router.patch("/transactions/{transaction_id}/category")
+def update_transaction_category(
+    transaction_id: int,
+    category: str = Body(..., embed=True),
+):
+    return transaction_service.update_transaction_category(
+        transaction_id=transaction_id,
+        category=category,
+    )

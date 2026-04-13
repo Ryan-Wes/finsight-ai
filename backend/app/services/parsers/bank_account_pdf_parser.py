@@ -3,6 +3,7 @@ import re
 from app.services.hash_service import generate_transaction_hash
 from app.services.parsers.credit_card_pdf_parser import parse_ptbr_date
 from app.services.transaction_normalizer import normalize_description
+from app.services.category_service import categorize_transaction
 
 
 DATE_ONLY_PATTERN = re.compile(
@@ -200,7 +201,7 @@ def build_transaction(
         "absolute_amount": amount,
         "direction": current_direction,
         "transaction_type": transaction_type,
-        "category": None,
+        "category": categorize_transaction(raw_description, transaction_type),
         "source_name": "nubank",
         "source_type": "bank_account",
         "file_format": "pdf",

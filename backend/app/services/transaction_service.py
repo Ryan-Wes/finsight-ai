@@ -26,6 +26,8 @@ def save_transactions(import_id: int, transactions: list[dict]) -> dict:
                         direction,
                         transaction_type,
                         category,
+                        category_source,
+                        category_reviewed,
                         source_name,
                         source_type,
                         file_format,
@@ -35,7 +37,7 @@ def save_transactions(import_id: int, transactions: list[dict]) -> dict:
                         installment_total,
                         transaction_hash
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         import_id,
@@ -48,6 +50,8 @@ def save_transactions(import_id: int, transactions: list[dict]) -> dict:
                         transaction["direction"],
                         transaction["transaction_type"],
                         transaction["category"],
+                        transaction.get("category_source", "rule"),
+                        transaction.get("category_reviewed", 0),
                         transaction["source_name"],
                         transaction["source_type"],
                         transaction["file_format"],
@@ -207,3 +211,36 @@ def get_available_months():
     conn.close()
 
     return months
+
+
+def update_transaction_category(transaction_id: int, category: str) -> dict:
+    with get_connection() as connection:
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            UPDATE transactions
+            SET category = ?,
+                category_source = ?,
+                category_reviewed = ?
+            WHERE id = ?
+            """,
+            (category, "manual", 1, transaction_id),
+        )
+
+        connection.commit()
+
+        if cursor.rowcount == 0:
+            return {
+                "success": False,
+                "message": "Transaction not found",
+            }
+
+    return {
+        "success": True,
+        "message": "Category updated successfully",
+        "transaction_id": transaction_id,
+        "category": category,
+        "category_source": "manual",
+        "category_reviewed": 1,
+    }
