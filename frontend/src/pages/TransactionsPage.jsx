@@ -30,6 +30,13 @@ function TransactionsPage() {
     '__custom__',
   ])
 
+  const [selectedFiles, setSelectedFiles] = useState([])
+  const [uploadResults, setUploadResults] = useState([])
+  const [uploading, setUploading] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const [showUpload, setShowUpload] = useState(false)
+
   const [filters, setFilters] = useState({
     month: '',
     type: '',
@@ -131,41 +138,41 @@ function TransactionsPage() {
   }, [])
 
   useEffect(() => {
-    async function fetchTransactions() {
-      try {
-        setLoading(true)
-        setError('')
-
-        const queryParams = new URLSearchParams()
-
-        if (filters.month) queryParams.append('month', filters.month)
-        if (filters.type) queryParams.append('type', filters.type)
-        if (filters.source) queryParams.append('source', filters.source)
-
-        queryParams.append('limit', String(pagination.limit))
-        queryParams.append('offset', String(pagination.offset))
-
-        const response = await fetch(
-          `http://127.0.0.1:8000/api/transactions?${queryParams.toString()}`
-        )
-
-        if (!response.ok) {
-          throw new Error('Erro ao buscar transações')
-        }
-
-        const data = await response.json()
-
-        setTransactions(data.items || [])
-        setTotal(data.total || 0)
-      } catch (err) {
-        setError(err.message || 'Erro inesperado')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchTransactions()
   }, [filters, pagination])
+
+  async function fetchTransactions() {
+    try {
+      setLoading(true)
+      setError('')
+
+      const queryParams = new URLSearchParams()
+
+      if (filters.month) queryParams.append('month', filters.month)
+      if (filters.type) queryParams.append('type', filters.type)
+      if (filters.source) queryParams.append('source', filters.source)
+
+      queryParams.append('limit', String(pagination.limit))
+      queryParams.append('offset', String(pagination.offset))
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/transactions?${queryParams.toString()}`
+      )
+
+      if (!response.ok) {
+        throw new Error('Erro ao buscar transações')
+      }
+
+      const data = await response.json()
+
+      setTransactions(data.items || [])
+      setTotal(data.total || 0)
+    } catch (err) {
+      setError(err.message || 'Erro inesperado')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   function handleFilterChange(field, value) {
     setFilters((prev) => ({
@@ -177,6 +184,88 @@ function TransactionsPage() {
       ...prev,
       offset: 0,
     }))
+  }
+
+  function handleSelectedFiles(filesList) {
+    const filesArray = Array.from(filesList || [])
+    setSelectedFiles(filesArray)
+  }
+
+  async function handleUploadFiles() {
+    if (!selectedFiles.length) {
+      return
+    }
+
+    try {
+      setUploading(true)
+      setError('')
+
+      const formData = new FormData()
+
+      selectedFiles.forEach((file) => {
+        formData.append('files', file)
+      })
+
+      const response = await fetch('http://127.0.0.1:8000/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Erro ao enviar arquivos')
+      }
+
+      const data = await response.json()
+      setUploadResults(data.results || [])
+      setSelectedFiles([])
+
+      const monthsResponse = await fetch('http://127.0.0.1:8000/api/transactions/months')
+
+      if (monthsResponse.ok) {
+        const monthsData = await monthsResponse.json()
+        setMonths(monthsData.months || [])
+      }
+
+      await fetchTransactions()
+    } catch (err) {
+      setError(err.message || 'Erro ao enviar arquivos')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handleResetDatabase() {
+    try {
+      setResetting(true)
+      setError('')
+      setUploadResults([])
+
+      const response = await fetch('http://127.0.0.1:8000/api/dev/reset', {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Erro ao limpar base')
+      }
+
+      setTransactions([])
+      setTotal(0)
+      setMonths([])
+      setSelectedFiles([])
+      setFilters({
+        month: '',
+        type: '',
+        source: '',
+      })
+      setPagination({
+        limit: 50,
+        offset: 0,
+      })
+    } catch (err) {
+      setError(err.message || 'Erro ao limpar base')
+    } finally {
+      setResetting(false)
+    }
   }
 
   function formatMonthLabel(month) {
@@ -343,13 +432,128 @@ function TransactionsPage() {
       <div className="container">
         <header className="header">
           <h1>Transações</h1>
-          <p>Visualize, filtre e revise categorias das transações</p>
+          <p>Visualize, filtre, importe arquivos e revise categorias</p>
           <div style={{ marginTop: '16px' }}>
             <Link to="/" className="filter-button">
               Voltar para dashboard
             </Link>
           </div>
         </header>
+
+        <div className="dashboard-toolbar">
+          <button
+            className="filter-button"
+            onClick={() => setShowUpload(!showUpload)}
+          >
+            {showUpload ? 'Ocultar importação' : 'Importar arquivos'}
+          </button>
+        </div>
+
+        {showUpload && (
+          <section className="table-container" style={{ marginBottom: '24px' }}>
+            <h2>Importar dados</h2>
+
+            <div
+              className={`upload-dropzone ${isDragging ? 'dragging' : ''}`}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setIsDragging(true)
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault()
+                setIsDragging(false)
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                setIsDragging(false)
+                handleSelectedFiles(e.dataTransfer.files)
+              }}
+            >
+              <p className="upload-title">
+                Arraste PDFs e CSVs aqui ou escolha no botão
+              </p>
+
+              <p className="upload-subtitle">
+                Você pode enviar vários arquivos de uma vez
+              </p>
+
+              <div className="upload-actions">
+                <label className="filter-button upload-label">
+                  Escolher arquivos
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.csv"
+                    className="hidden-file-input"
+                    onChange={(e) => handleSelectedFiles(e.target.files)}
+                  />
+                </label>
+
+                <button
+                  className="filter-button"
+                  onClick={handleUploadFiles}
+                  disabled={uploading || !selectedFiles.length}
+                >
+                  {uploading ? 'Enviando...' : 'Enviar arquivos'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={handleResetDatabase}
+                  disabled={resetting}
+                >
+                  {resetting ? 'Limpando...' : 'Limpar base'}
+                </button>
+              </div>
+            </div>
+
+            {selectedFiles.length > 0 && (
+              <div style={{ marginTop: '20px' }}>
+                <h3 style={{ marginBottom: '12px' }}>
+                  Arquivos selecionados ({selectedFiles.length})
+                </h3>
+
+                <div className="top-category-list">
+                  {selectedFiles.map((file) => (
+                    <div
+                      key={`${file.name}-${file.size}`}
+                      className="top-category-item"
+                    >
+                      <span>{file.name}</span>
+                      <strong>{(file.size / 1024).toFixed(1)} KB</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {uploadResults.length > 0 && (
+              <div style={{ marginTop: '20px' }}>
+                <h3 style={{ marginBottom: '12px' }}>
+                  Resultado do upload
+                </h3>
+
+                <div className="top-category-list">
+                  {uploadResults.map((result, index) => (
+                    <div
+                      key={`${result.filename}-${index}`}
+                      className="top-category-item"
+                    >
+                      <span>{result.original_filename || result.filename}</span>
+                      <strong
+                        style={{ color: result.error ? '#ef4444' : '#22c55e' }}
+                      >
+                        {result.error
+                          ? `Erro: ${result.error}`
+                          : `OK • inseridas: ${result.inserted_count ?? 0} • ignoradas: ${result.skipped_count ?? 0}`}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="filters">
           <select
