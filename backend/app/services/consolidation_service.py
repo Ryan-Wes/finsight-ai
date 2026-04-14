@@ -287,11 +287,11 @@ def get_monthly_trend_summary(
                 "cashflow": 0.0,
             }
 
-        if not is_ignored_in_spending and not is_internal_transfer:
-            if direction == "in":
-                grouped[month]["income"] += absolute_amount
-            elif direction == "out":
-                grouped[month]["expenses"] += absolute_amount
+        if direction == "in":
+            grouped[month]["income"] += absolute_amount
+
+        elif direction == "out":
+            grouped[month]["expenses"] += absolute_amount
 
         grouped[month]["cashflow"] = (
             grouped[month]["income"] - grouped[month]["expenses"]
