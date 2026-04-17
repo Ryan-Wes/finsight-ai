@@ -5,7 +5,7 @@
 }
 
 body {
-  background-color: #0b0b12;
+  background-color: #0f0b12;
   color: #e4e4e7;
   font-family: Arial, sans-serif;
 }
@@ -57,8 +57,8 @@ main {
 
 .sidebar {
   padding: 16px 14px;
-  background: #0b0b1a;
-  border: 1px solid #1f1f3a;
+  background: #150b1a;
+  border: 1px solid #311f3a;
   border-radius: 22px;
   align-self: start;
   position: sticky;
@@ -98,12 +98,12 @@ main {
 }
 
 .sidebar li:hover {
-  background: #1a1a3a;
+  background: #2c1a3a;
   color: #ffffff;
 }
 
 .sidebar li.active {
-  background: #6d28d9;
+  background: #41156a;
   color: #ffffff;
 }
 
@@ -129,8 +129,8 @@ main {
 
 .card,
 .table-container {
-  background: #121220;
-  border: 1px solid #1f1f2e;
+  background: #1a1220;
+  border: 1px solid #281f2e;
   border-radius: 20px;
   overflow: hidden;
 }
@@ -163,7 +163,6 @@ main {
 
 .table-container {
   padding: 14px 16px;
-  overflow-x: hidden;
 }
 
 .table-container h2 {
@@ -175,6 +174,7 @@ main {
 
 .table-container p {
   text-align: center;
+  margin-bottom: 20px;
 }
 
 .donut-card {
@@ -299,18 +299,79 @@ table {
 
 thead th {
   text-align: center;
+  font-size: 12px;
+  padding: 10px 8px;
+  vertical-align: middle;
 }
 
-th,
-td {
-  padding: 12px;
+thead th span {
+  display: block;
+  width: 100%;
   text-align: center;
 }
 
-td:nth-child(2),
-td:nth-child(8){
-  white-space: nowrap;
+th {
+  padding: 10px 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+td {
+  padding: 10px 8px;
+  vertical-align: middle;
+}
+
+.cell-left {
   text-align: left;
+}
+
+.cell-center {
+  text-align: center;
+}
+
+.cell-nowrap {
+  white-space: nowrap;
+}
+
+.transaction-description-cell {
+  width: 32%;
+  min-width: 0;
+}
+
+.category-cell {
+  width: 12%;
+}
+
+.subcategory-cell {
+  width: 12%;
+}
+
+.source-cell {
+  width: 9%;
+}
+
+.value-cell {
+  width: 10%;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.type-cell {
+  width: 10%;
+}
+
+.date-cell {
+  width: 8%;
+  white-space: nowrap;
+}
+
+.origin-cell {
+  width: 7%;
+  white-space: nowrap;
+}
+
+.checkbox-cell {
+  width: 40px;
 }
 
 thead {
@@ -327,6 +388,103 @@ tbody tr:hover {
 
 .value {
   font-weight: bold;
+}
+
+.success-banner {
+  max-width: 30%;
+  margin: 0 auto 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(134, 239, 172, 0.25);
+  background: rgba(22, 51, 34, 0.45);
+  color: #bbf7d0;
+  border-radius: 12px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.similar-preview-banner {
+  padding: 10px 12px;
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  background: rgba(76, 29, 149, 0.18);
+  color: #ddd6fe;
+  border-radius: 10px;
+  font-size: 14px;
+  text-align: left;
+}
+
+.modal-error-banner {
+  padding: 10px 12px;
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  background: rgba(69, 10, 10, 0.35);
+  color: #fca5a5;
+  border-radius: 10px;
+  font-size: 14px;
+  text-align: left;
+}
+
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+
+  width: 16px;
+  height: 16px;
+
+  border: 2px solid #71717a; /* cinza */
+  border-radius: 4px;
+
+  background: transparent;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: all 0.2s ease;
+}
+
+input[type="checkbox"]:checked {
+  background-color: #8b5cf6; /* roxo */
+  border-color: #8b5cf6;
+}
+
+input[type="checkbox"]::after {
+  content: '';
+  width: 5px;
+  height: 9px;
+
+  border: solid white;
+  border-width: 0 2px 2px 0;
+
+  transform: translateY(-1px) rotate(45deg) scale(0);
+  transition: transform 0.15s ease;
+}
+
+input[type="checkbox"]:checked::after {
+  transform: translateY(-1px) rotate(45deg) scale(1);
+}
+
+input[type="checkbox"]:hover {
+  border-color: #a78bfa;
+}
+
+input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.3);
+}
+
+input[type="checkbox"]:indeterminate {
+  background-color: #8b5cf6;
+  border-color: #8b5cf6;
+}
+
+input[type="checkbox"]:indeterminate::after {
+  content: '';
+  width: 8px;
+  height: 2px;
+  background: white;
+  border: none;
+
+  transform: scale(1);
 }
 
 .filters {
@@ -430,11 +588,20 @@ button:disabled {
 
 .category-badge,
 .source-badge {
-  display: inline-block;
-  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 8px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
+  max-width: 100%;
+  font-size: 12px;
+}
+
+.subcategory-cell .category-badge {
+  opacity: 0.9;
+  font-size: 12px;
 }
 
 .category-badge {
@@ -455,6 +622,8 @@ button:disabled {
 .source-auto {
   background: #221a3a;
   color: #c4b5fd;
+  
+  
 }
 
 .source-manual {
@@ -539,6 +708,8 @@ button:disabled {
   border: 1px solid #27272a;
   border-radius: 10px;
   padding: 10px 12px;
+  font-size: 14px;
+  cursor: pointer;
 }
 
 .checkbox-filter input {
@@ -556,8 +727,11 @@ button:disabled {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 4px;
   background: #1f1f2e;
+  max-width: 100%;
+  white-space: nowrap;
 }
 
 .category-trigger:hover {
@@ -694,8 +868,13 @@ button:disabled {
 .transaction-description {
   position: relative;
   display: inline-block;
+  width: 100%;
   max-width: 100%;
   cursor: default;
+  text-align: left;
+  line-height: 1.35;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .transaction-description.has-note {
