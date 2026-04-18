@@ -28,6 +28,7 @@ function App() {
   const [categorySchema, setCategorySchema] = useState([])
 
   const [filters, setFilters] = useState({
+    year: '',
     month: '',
   })
 
@@ -235,7 +236,13 @@ function App() {
 
   const availableMonthsSet = new Set(months)
 
-  const selectedYear = filters.month ? filters.month.slice(0, 4) : '2026'
+  const availableYears = [...new Set(months.map((month) => month.slice(0, 4)))]
+    .sort((a, b) => Number(b) - Number(a))
+
+  const selectedYear =
+    filters.year ||
+    filters.month?.slice(0, 4) ||
+    (availableYears.length > 0 ? availableYears[0] : '')
 
   const sidebarMonths = MONTH_OPTIONS.map((item) => {
     const fullMonth = `${selectedYear}-${item.value}`
@@ -329,9 +336,24 @@ function App() {
             <div className="sidebar-section">
               <p>Ano</p>
               <ul>
-                <li className="active">2026</li>
-                <li>2025</li>
-                <li>2024</li>
+                {availableYears.map((year) => (
+                  <li
+                    key={year}
+                    className={selectedYear === year ? 'active has-data' : 'has-data'}
+                    onClick={() =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        year,
+                        month:
+                          prev.month && prev.month.startsWith(year)
+                            ? prev.month
+                            : '',
+                      }))
+                    }
+                  >
+                    {year}
+                  </li>
+                ))}
               </ul>
             </div>
 
@@ -352,6 +374,7 @@ function App() {
 
                       setFilters((prev) => ({
                         ...prev,
+                        year: selectedYear,
                         month: prev.month === month.fullMonth ? '' : month.fullMonth,
                       }))
                     }}
@@ -562,20 +585,20 @@ function App() {
                         horizontal={false}
                       />
                       <XAxis
-  type="number"
-  stroke="rgba(228, 228, 231, 0.35)"
-  tickLine={false}
-  axisLine={false}
-  tickFormatter={(value) => `R$ ${value / 1000}k`}
-/>
+                        type="number"
+                        stroke="rgba(228, 228, 231, 0.35)"
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => `R$ ${value / 1000}k`}
+                      />
                       <YAxis
-  dataKey="name"
-  type="category"
-  stroke="rgba(228, 228, 231, 0.55)"
-  tickLine={false}
-  axisLine={false}
-  width={145}
-/>
+                        dataKey="name"
+                        type="category"
+                        stroke="rgba(228, 228, 231, 0.55)"
+                        tickLine={false}
+                        axisLine={false}
+                        width={145}
+                      />
                       <Tooltip
                         cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
                         formatter={(value) => `R$ ${Number(value).toFixed(2)}`}
