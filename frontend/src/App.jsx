@@ -11,6 +11,8 @@ import {
   PieChart,
   Pie,
   Cell,
+  CartesianGrid,
+  Legend,
 } from 'recharts'
 
 
@@ -47,34 +49,34 @@ function App() {
     '#84cc16',
   ]
 
-    const formatCategory = (name) => {
-  if (!name) return ''
+  const formatCategory = (name) => {
+    if (!name) return ''
 
-  const schemaItem = categorySchema.find((item) => item.key === name)
+    const schemaItem = categorySchema.find((item) => item.key === name)
 
-  // prioridade total pro backend
-  if (schemaItem?.label) {
-    return schemaItem.label
+    // prioridade total pro backend
+    if (schemaItem?.label) {
+      return schemaItem.label
+    }
+
+    // fallback mais bonito
+    return name
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase())
   }
-
-  // fallback mais bonito
-  return name
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase())
-}
 
 
   const getCategoryColor = (category) => {
-  if (!category) {
+    if (!category) {
+      return '#71717a'
+    }
+
+    if (schemaColorMap[category]) {
+      return schemaColorMap[category]
+    }
+
     return '#71717a'
   }
-
-  if (schemaColorMap[category]) {
-    return schemaColorMap[category]
-  }
-
-  return '#71717a'
-}
 
   const renderDonutTooltip = ({ active, payload }) => {
     if (!active || !payload || !payload.length) {
@@ -123,7 +125,7 @@ function App() {
         </p>
       </div>
     )
-    
+
   }
 
   useEffect(() => {
@@ -150,7 +152,7 @@ function App() {
         const monthsData = await monthsResponse.json()
         setMonths(monthsData.months || [])
 
-                const [
+        const [
           transactionsResponse,
           summaryResponse,
           byCategoryResponse,
@@ -164,7 +166,7 @@ function App() {
           fetch('http://127.0.0.1:8000/api/categories/schema'),
         ])
 
-                if (
+        if (
           !transactionsResponse.ok ||
           !summaryResponse.ok ||
           !byCategoryResponse.ok ||
@@ -174,7 +176,7 @@ function App() {
           throw new Error('Erro ao buscar dados da API')
         }
 
-                const transactionsData = await transactionsResponse.json()
+        const transactionsData = await transactionsResponse.json()
         const summaryData = await summaryResponse.json()
         const byCategoryData = await byCategoryResponse.json()
         const monthlyTrendData = await monthlyTrendResponse.json()
@@ -215,6 +217,36 @@ function App() {
 
     return `${monthNames[monthNumber] || month} ${year}`
   }
+
+  const MONTH_OPTIONS = [
+    { value: '01', label: 'Janeiro' },
+    { value: '02', label: 'Fevereiro' },
+    { value: '03', label: 'Março' },
+    { value: '04', label: 'Abril' },
+    { value: '05', label: 'Maio' },
+    { value: '06', label: 'Junho' },
+    { value: '07', label: 'Julho' },
+    { value: '08', label: 'Agosto' },
+    { value: '09', label: 'Setembro' },
+    { value: '10', label: 'Outubro' },
+    { value: '11', label: 'Novembro' },
+    { value: '12', label: 'Dezembro' },
+  ]
+
+  const availableMonthsSet = new Set(months)
+
+  const selectedYear = filters.month ? filters.month.slice(0, 4) : '2026'
+
+  const sidebarMonths = MONTH_OPTIONS.map((item) => {
+    const fullMonth = `${selectedYear}-${item.value}`
+
+    return {
+      ...item,
+      fullMonth,
+      hasData: availableMonthsSet.has(fullMonth),
+      isActive: filters.month === fullMonth,
+    }
+  })
 
   const monthlyTrendChartData = monthlyTrend.map((item) => ({
     name: item.month.split('-').reverse().join('/'),
@@ -306,37 +338,27 @@ function App() {
             <div className="sidebar-section">
               <p>Mês</p>
               <ul>
-                {months.length > 0 ? (
-                  months.map((month) => (
-                    <li
-                      key={month}
-                      className={filters.month === month ? 'active' : ''}
-                      onClick={() =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          month: prev.month === month ? '' : month,
-                        }))
-                      }
-                    >
-                      {formatMonthLabel(month)}
-                    </li>
-                  ))
-                ) : (
-                  <>
-                    <li>Janeiro</li>
-                    <li>Fevereiro</li>
-                    <li>Março</li>
-                    <li>Abril</li>
-                    <li>Maio</li>
-                    <li>Junho</li>
-                    <li>Julho</li>
-                    <li>Agosto</li>
-                    <li>Setembro</li>
-                    <li>Outubro</li>
-                    <li>Novembro</li>
-                    <li>Dezembro</li>
-                  </>
-                )}
+                {sidebarMonths.map((month) => (
+                  <li
+                    key={month.fullMonth}
+                    className={[
+                      month.isActive ? 'active' : '',
+                      month.hasData ? 'has-data' : 'no-data',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    onClick={() => {
+                      if (!month.hasData) return
+
+                      setFilters((prev) => ({
+                        ...prev,
+                        month: prev.month === month.fullMonth ? '' : month.fullMonth,
+                      }))
+                    }}
+                  >
+                    {month.label}
+                  </li>
+                ))}
               </ul>
             </div>
           </aside>
@@ -344,20 +366,48 @@ function App() {
           <div className="dashboard-content">
             <section className="summary-grid section-spacing">
               <div className="card kpi-card">
-                <p>Entrada do mês</p>
-                <h2 className="green">R$ {monthlyIncome.toFixed(2)}</h2>
+                <div className="kpi-card-content">
+                  <p>Entrada do mês</p>
+                  <h2 style={{ color: 'var(--color-positive)' }}>
+                    R$ {monthlyIncome.toFixed(2)}
+                  </h2>
+                </div>
+
+                <div className="kpi-sparkline kpi-sparkline-positive" />
               </div>
 
               <div className="card kpi-card">
-                <p>Saída do mês</p>
-                <h2 className="red">R$ {monthlyExpenses.toFixed(2)}</h2>
+                <div className="kpi-card-content">
+                  <p>Saída do mês</p>
+                  <h2 style={{ color: 'var(--color-negative)' }}>
+                    R$ {monthlyExpenses.toFixed(2)}
+                  </h2>
+                </div>
+
+                <div className="kpi-sparkline kpi-sparkline-negative" />
               </div>
 
               <div className="card kpi-card">
-                <p>Saldo do mês</p>
-                <h2 className={monthlyBalance >= 0 ? 'green' : 'red'}>
-                  R$ {monthlyBalance.toFixed(2)}
-                </h2>
+                <div className="kpi-card-content">
+                  <p>Saldo do mês</p>
+                  <h2
+                    style={{
+                      color:
+                        monthlyBalance >= 0
+                          ? 'var(--color-positive)'
+                          : 'var(--color-negative)',
+                    }}
+                  >
+                    R$ {monthlyBalance.toFixed(2)}
+                  </h2>
+                </div>
+
+                <div
+                  className={`kpi-sparkline ${monthlyBalance >= 0
+                    ? 'kpi-sparkline-positive'
+                    : 'kpi-sparkline-negative'
+                    }`}
+                />
               </div>
 
               <div className="table-container donut-card">
@@ -429,18 +479,66 @@ function App() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={monthlyTrendChartData}
-                      barCategoryGap="28%"
-                      barGap={6}
+                      barCategoryGap="24%"
+                      barGap={8}
+                      margin={{ top: 35, right: 10, left: 10, bottom: 0 }}
                     >
-                      <XAxis dataKey="name" stroke="#a1a1aa" />
-                      <YAxis stroke="#a1a1aa" />
-                      <Tooltip />
-                      <Bar dataKey="income" fill="#22c55e" barSize={26} radius={[6, 6, 0, 0]} />
+                      <CartesianGrid
+                        stroke="rgba(228, 228, 231, 0.08)"
+                        strokeDasharray="0"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="name"
+                        stroke="rgba(228, 228, 231, 0.55)"
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        stroke="rgba(228, 228, 231, 0.35)"
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => `R$ ${value / 1000}k`}
+                        width={55}
+                        ticks={[0, 5000, 10000, 15000, 20000, 25000]}
+                      />
+                      <Tooltip
+                        cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
+                        formatter={(value) => `R$ ${Number(value).toFixed(2)}`}
+                        contentStyle={{
+                          background: '#111827',
+                          border: '1px solid rgba(167, 139, 250, 0.18)',
+                          borderRadius: '12px',
+                          color: '#e5e7eb',
+                          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
+                        }}
+                        labelStyle={{ color: '#e5e7eb', fontWeight: 600 }}
+                      />
+                      <Legend
+                        verticalAlign="top"
+                        align="left"
+                        iconType="square"
+                        wrapperStyle={{
+                          top: -10,
+                          left: 10,
+                          fontSize: '13px',
+                          color: '#a1a1aa',
+                        }}
+                      />
+                      <Bar
+                        dataKey="income"
+                        name="Entradas"
+                        fill="var(--color-positive)"
+                        barSize={30}
+                        radius={[8, 8, 0, 0]}
+                      />
+
                       <Bar
                         dataKey="expenses"
-                        fill="#ef4444"
-                        barSize={26}
-                        radius={[6, 6, 0, 0]}
+                        name="Saídas"
+                        fill="var(--color-negative)"
+                        barSize={30}
+                        radius={[8, 8, 0, 0]}
                       />
                     </BarChart>
                   </ResponsiveContainer>
@@ -456,16 +554,46 @@ function App() {
                       data={topExpenses}
                       layout="vertical"
                       barCategoryGap="26%"
+                      margin={{ top: 35, right: 10, left: 10, bottom: 0 }}
                     >
-                      <XAxis type="number" stroke="#a1a1aa" />
-                      <YAxis
-                        dataKey="name"
-                        type="category"
-                        stroke="#a1a1aa"
-                        width={150}
+                      <CartesianGrid
+                        stroke="rgba(228, 228, 231, 0.08)"
+                        strokeDasharray="0"
+                        horizontal={false}
                       />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="#ef4444" barSize={18} radius={[0, 6, 6, 0]} />
+                      <XAxis
+  type="number"
+  stroke="rgba(228, 228, 231, 0.35)"
+  tickLine={false}
+  axisLine={false}
+  tickFormatter={(value) => `R$ ${value / 1000}k`}
+/>
+                      <YAxis
+  dataKey="name"
+  type="category"
+  stroke="rgba(228, 228, 231, 0.55)"
+  tickLine={false}
+  axisLine={false}
+  width={145}
+/>
+                      <Tooltip
+                        cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
+                        formatter={(value) => `R$ ${Number(value).toFixed(2)}`}
+                        contentStyle={{
+                          background: '#111827',
+                          border: '1px solid rgba(167, 139, 250, 0.18)',
+                          borderRadius: '12px',
+                          color: '#e5e7eb',
+                          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
+                        }}
+                        labelStyle={{ color: '#e5e7eb', fontWeight: 600 }}
+                      />
+                      <Bar
+                        dataKey="value"
+                        fill="var(--color-negative)"
+                        barSize={20}
+                        radius={[0, 8, 8, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

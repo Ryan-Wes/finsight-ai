@@ -4,7 +4,7 @@ from app.services.transaction_normalizer import normalize_description
 CATEGORY_SCHEMA = {
     "movimentacoes": {
         "label": "Movimentações",
-        "color": "#60a5fa",
+        "color": "#94a3b8",
         "subcategories": {
             "caixinha": "Caixinha",
             "fatura": "Fatura",
@@ -19,7 +19,7 @@ CATEGORY_SCHEMA = {
     },
     "moradia": {
         "label": "Moradia",
-        "color": "#f97316",
+        "color": "#8b5cf6",
         "subcategories": {
             "internet": "Internet",
             "aluguel": "Aluguel",
@@ -28,7 +28,7 @@ CATEGORY_SCHEMA = {
     },
     "carro": {
         "label": "Carro",
-        "color": "#facc15",
+        "color": "#e54ba4",
         "subcategories": {
             "combustivel": "Combustível",
             "manutencao": "Manutenção",
@@ -37,7 +37,7 @@ CATEGORY_SCHEMA = {
     },
     "alimentacao": {
         "label": "Alimentação",
-        "color": "#ef4444",
+        "color": "#86efac",
         "subcategories": {
             "mercado": "Mercado",
             "restaurante": "Restaurante",
@@ -45,7 +45,7 @@ CATEGORY_SCHEMA = {
     },
     "transporte": {
         "label": "Transporte",
-        "color": "#38bdf8",
+        "color": "#93c5fd",
         "subcategories": {
             "uber": "Uber",
             "transporte_app": "Transporte por app",
@@ -53,7 +53,7 @@ CATEGORY_SCHEMA = {
     },
     "assinaturas": {
         "label": "Assinaturas",
-        "color": "#8b5cf6",
+        "color": "#fde68a",
         "subcategories": {
             "software": "Software",
             "streaming": "Streaming",
@@ -61,7 +61,7 @@ CATEGORY_SCHEMA = {
     },
     "compras": {
         "label": "Compras",
-        "color": "#22c55e",
+        "color": "#c1f2ad",
         "subcategories": {
             "online": "Online",
             "acessorios": "Acessórios",
@@ -69,7 +69,7 @@ CATEGORY_SCHEMA = {
     },
     "saude": {
         "label": "Saúde",
-        "color": "#14b8a6",
+        "color": "#99f6e4",
         "subcategories": {
             "farmacia": "Farmácia",
             "consulta": "Consulta",
@@ -79,21 +79,21 @@ CATEGORY_SCHEMA = {
     },
     "vestuario": {
         "label": "Vestuário",
-        "color": "#ec4899",
+        "color": "#f3b3d8",
         "subcategories": {
             "roupas": "Roupas",
         },
     },
     "lazer": {
         "label": "Lazer",
-        "color": "#a855f7",
+        "color": "#d8b4fe",
         "subcategories": {
             "entretenimento": "Entretenimento",
         },
     },
     "nao_identificado": {
         "label": "Não identificado",
-        "color": "#71717a",
+        "color": "#a8a8b3",
         "subcategories": {
             "nao_identificado": "Não identificado",
         },
