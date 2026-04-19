@@ -1,5 +1,25 @@
 from app.services.transaction_service import list_transactions, normalize_category_name
 
+INCOME_TYPES = {
+    "transfer_in",
+    "pix_in",
+}
+
+EXPENSE_TYPES = {
+    "credit_card_bill_payment",
+    "pix_out",
+    "transfer_out",
+    "bill_payment",
+}
+
+
+def is_real_income_transaction(transaction: dict) -> bool:
+    return transaction.get("transaction_type") in INCOME_TYPES
+
+
+def is_real_expense_transaction(transaction: dict) -> bool:
+    return transaction.get("transaction_type") in EXPENSE_TYPES
+
 
 def consolidate_transactions(
     month: str | None = None,
@@ -30,25 +50,18 @@ def consolidate_transactions(
 
     for transaction in transactions:
         absolute_amount = float(transaction["absolute_amount"])
-        direction = transaction["direction"]
         is_ignored_in_spending = int(transaction["is_ignored_in_spending"])
         is_internal_transfer = int(transaction["is_internal_transfer"])
 
-        if direction == "in":
+        if is_real_income_transaction(transaction):
             total_income += absolute_amount
+            real_income += absolute_amount
             income_transactions.append(transaction)
 
-            if not is_ignored_in_spending and not is_internal_transfer:
-                real_income += absolute_amount
-
-        elif direction == "out":
-            if not is_ignored_in_spending:
-                total_expenses += absolute_amount
-
+        if is_real_expense_transaction(transaction):
+            total_expenses += absolute_amount
+            real_expenses += absolute_amount
             expense_transactions.append(transaction)
-
-            if not is_ignored_in_spending and not is_internal_transfer:
-                real_expenses += absolute_amount
 
         if is_ignored_in_spending:
             ignored_total += absolute_amount
@@ -83,7 +96,6 @@ def build_consolidated_by_type(transactions: list[dict]) -> list[dict]:
 
     for transaction in transactions:
         transaction_type = transaction["transaction_type"]
-        direction = transaction["direction"]
         absolute_amount = float(transaction["absolute_amount"])
         is_ignored_in_spending = int(transaction["is_ignored_in_spending"])
         is_internal_transfer = int(transaction["is_internal_transfer"])
@@ -101,9 +113,10 @@ def build_consolidated_by_type(transactions: list[dict]) -> list[dict]:
 
         grouped[transaction_type]["count"] += 1
 
-        if direction == "in":
+        if is_real_income_transaction(transaction):
             grouped[transaction_type]["income_total"] += absolute_amount
-        elif direction == "out":
+
+        if is_real_expense_transaction(transaction):
             grouped[transaction_type]["expense_total"] += absolute_amount
 
         if is_ignored_in_spending:
@@ -112,11 +125,10 @@ def build_consolidated_by_type(transactions: list[dict]) -> list[dict]:
         if is_internal_transfer:
             grouped[transaction_type]["internal_transfer_total"] += absolute_amount
 
-        if not is_ignored_in_spending and not is_internal_transfer:
-            if direction == "in":
-                grouped[transaction_type]["real_total"] += absolute_amount
-            elif direction == "out":
-                grouped[transaction_type]["real_total"] -= absolute_amount
+        if is_real_income_transaction(transaction):
+            grouped[transaction_type]["real_total"] += absolute_amount
+        elif is_real_expense_transaction(transaction):
+            grouped[transaction_type]["real_total"] -= absolute_amount
 
     return sorted(
         [
@@ -144,7 +156,6 @@ def build_consolidated_by_source_type(transactions: list[dict]) -> list[dict]:
 
     for transaction in transactions:
         source_type = transaction["source_type"]
-        direction = transaction["direction"]
         absolute_amount = float(transaction["absolute_amount"])
         is_ignored_in_spending = int(transaction["is_ignored_in_spending"])
         is_internal_transfer = int(transaction["is_internal_transfer"])
@@ -163,22 +174,19 @@ def build_consolidated_by_source_type(transactions: list[dict]) -> list[dict]:
 
         grouped[source_type]["count"] += 1
 
-        if direction == "in":
+        if is_real_income_transaction(transaction):
             grouped[source_type]["income_total"] += absolute_amount
-        elif direction == "out":
+            grouped[source_type]["real_income"] += absolute_amount
+
+        if is_real_expense_transaction(transaction):
             grouped[source_type]["expense_total"] += absolute_amount
+            grouped[source_type]["real_expenses"] += absolute_amount
 
         if is_ignored_in_spending:
             grouped[source_type]["ignored_total"] += absolute_amount
 
         if is_internal_transfer:
             grouped[source_type]["internal_transfer_total"] += absolute_amount
-
-        if not is_ignored_in_spending and not is_internal_transfer:
-            if direction == "in":
-                grouped[source_type]["real_income"] += absolute_amount
-            elif direction == "out":
-                grouped[source_type]["real_expenses"] += absolute_amount
 
     return sorted(
         [
@@ -270,6 +278,7 @@ def get_by_category_summary(
         key=lambda item: (-item["expense_total"], -item["count"], item["category"]),
     )
 
+
 def get_monthly_trend_summary(
     transaction_type: str | None = None,
     source: str | None = None,
@@ -287,7 +296,6 @@ def get_monthly_trend_summary(
 
     for transaction in transactions:
         month = transaction["transaction_date"][:7]
-        direction = transaction["direction"]
         absolute_amount = float(transaction["absolute_amount"])
 
         if month not in grouped:
@@ -298,9 +306,10 @@ def get_monthly_trend_summary(
                 "cashflow": 0.0,
             }
 
-        if direction == "in":
+        if is_real_income_transaction(transaction):
             grouped[month]["income"] += absolute_amount
-        elif direction == "out":
+
+        if is_real_expense_transaction(transaction):
             grouped[month]["expenses"] += absolute_amount
 
         grouped[month]["cashflow"] = (
