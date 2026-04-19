@@ -198,25 +198,25 @@ function App() {
     fetchData()
   }, [filters])
 
-  function formatMonthLabel(month) {
-    const [year, monthNumber] = month.split('-')
+  function formatMonthLabel(monthStr) {
+    const [, month] = monthStr.split('-')
 
-    const monthNames = {
-      '01': 'Janeiro',
-      '02': 'Fevereiro',
-      '03': 'Março',
-      '04': 'Abril',
-      '05': 'Maio',
-      '06': 'Junho',
-      '07': 'Julho',
-      '08': 'Agosto',
-      '09': 'Setembro',
-      '10': 'Outubro',
-      '11': 'Novembro',
-      '12': 'Dezembro',
+    const map = {
+      '01': 'jan',
+      '02': 'fev',
+      '03': 'mar',
+      '04': 'abr',
+      '05': 'mai',
+      '06': 'jun',
+      '07': 'jul',
+      '08': 'ago',
+      '09': 'set',
+      '10': 'out',
+      '11': 'nov',
+      '12': 'dez',
     }
 
-    return `${monthNames[monthNumber] || month} ${year}`
+    return map[month] || month
   }
 
   const MONTH_OPTIONS = [
@@ -233,6 +233,8 @@ function App() {
     { value: '11', label: 'Novembro' },
     { value: '12', label: 'Dezembro' },
   ]
+
+
 
   const availableMonthsSet = new Set(months)
 
@@ -255,11 +257,13 @@ function App() {
     }
   })
 
-  const monthlyTrendChartData = monthlyTrend.map((item) => ({
-    name: item.month.split('-').reverse().join('/'),
-    income: item.income,
-    expenses: item.expenses,
-  }))
+  const monthlyTrendChartData = monthlyTrend
+    .filter((item) => item.month.startsWith(selectedYear))
+    .map((item) => ({
+      name: formatMonthLabel(item.month),
+      income: item.income,
+      expenses: item.expenses,
+    }))
 
   const monthlyIncome = Number(summary?.total_income ?? 0)
   const monthlyExpenses = Number(summary?.total_expenses ?? 0)
@@ -299,8 +303,15 @@ function App() {
 
   const donutLegendItems = expenseByCategory
 
+  const EXPENSE_TYPES = [
+    'credit_card_bill_payment',
+    'pix_out',
+    'transfer_out',
+    'bill_payment',
+  ]
+
   const topExpenses = transactions
-    .filter((transaction) => transaction.direction === 'out')
+    .filter((transaction) => EXPENSE_TYPES.includes(transaction.transaction_type))
     .sort((a, b) => b.absolute_amount - a.absolute_amount)
     .slice(0, 5)
     .map((transaction) => ({
@@ -324,7 +335,7 @@ function App() {
           <div style={{ marginTop: '16px' }}>
             <a
               href="/transactions"
-              style={{ color: '#a78bfa', textDecoration: 'none' }}
+              style={{ color: '#8864f6', textDecoration: 'none' }}
             >
               Ver transações →
             </a>
@@ -502,8 +513,8 @@ function App() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={monthlyTrendChartData}
-                      barCategoryGap="24%"
-                      barGap={8}
+                      barCategoryGap="32%"
+                      barGap={5}
                       margin={{ top: 35, right: 10, left: 10, bottom: 0 }}
                     >
                       <CartesianGrid
@@ -552,16 +563,16 @@ function App() {
                         dataKey="income"
                         name="Entradas"
                         fill="var(--color-positive)"
-                        barSize={30}
-                        radius={[8, 8, 0, 0]}
+                        barSize={15}
+                        radius={[6, 6, 0, 0]}
                       />
 
                       <Bar
                         dataKey="expenses"
                         name="Saídas"
                         fill="var(--color-negative)"
-                        barSize={30}
-                        radius={[8, 8, 0, 0]}
+                        barSize={15}
+                        radius={[6, 6, 0, 0]}
                       />
                     </BarChart>
                   </ResponsiveContainer>

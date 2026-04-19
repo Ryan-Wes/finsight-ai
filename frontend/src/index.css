@@ -88,16 +88,19 @@ main {
 }
 
 .sidebar {
+  height: 100%;
   padding: 12px 12px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)),
     #140a18;
   border: 1px solid rgba(104, 61, 236, 0.18);
   border-radius: 22px;
-  align-self: start;
   position: sticky;
   top: 12px;
   box-shadow: var(--shadow-soft);
+
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-section {
@@ -411,7 +414,7 @@ main {
 
 .analytics-main-card,
 .analytics-side-card {
-  min-height: 290px;
+  min-height: 250px;
 }
 
 .analytics-main-card h2,
@@ -923,7 +926,20 @@ button:disabled {
 }
 
 .section-spacing {
-  margin-bottom: 32px;
+  margin-bottom: 20px;
+}
+
+.sidebar-section:last-child {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-section:last-child ul {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
 }
 
 @media (max-width: 1400px) {

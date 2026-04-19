@@ -665,7 +665,7 @@ function TransactionsPage() {
           <div style={{ marginTop: '16px' }}>
             <Link
               to="/"
-              style={{ color: '#a78bfa', textDecoration: 'none' }}
+              style={{ color: '#8864f6', textDecoration: 'none' }}
             >
               ← Voltar para dashboard
             </Link>
