@@ -91,7 +91,7 @@ main {
   height: 100%;
   padding: 12px 12px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
     #140a18;
   border: 1px solid rgba(104, 61, 236, 0.18);
   border-radius: 22px;
@@ -142,7 +142,7 @@ main {
 .sidebar li.no-data {
   color: rgba(156, 163, 175, 0.35);
   cursor: default;
-  
+
 }
 
 .sidebar li.has-data:hover {
@@ -156,11 +156,9 @@ main {
 }
 
 .sidebar li.active {
-  background: linear-gradient(
-    135deg,
-    rgba(67, 38, 146, 0.9),
-    rgba(107, 71, 191, 0.9)
-  );
+  background: linear-gradient(135deg,
+      rgba(67, 38, 146, 0.9),
+      rgba(107, 71, 191, 0.9));
   color: #fff;
   font-weight: 600;
   box-shadow: 0 6px 20px rgba(104, 61, 236, 0.35);
@@ -174,9 +172,30 @@ main {
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(150px, 0.8fr)) minmax(300px, 1.05fr);
-  gap: 16px;
-  margin-bottom: 16px;
+  grid-template-areas:
+    "income expenses balance donut"
+    "reserve reserve reserve donut";
+  grid-template-rows: 150px 70px;
+  gap: 14px;
   align-items: stretch;
+}
+
+.kpi-income {
+  grid-area: income;
+}
+
+.kpi-expenses {
+  grid-area: expenses;
+}
+
+.kpi-balance {
+  grid-area: balance;
+}
+
+.reserve-strip {
+  grid-area: reserve;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .analytics-grid {
@@ -195,18 +214,15 @@ main {
 }
 
 .card {
-  padding: 16px 18px;
-}
-
-.card {
   padding: 14px 16px;
 }
 
 .kpi-card {
   position: relative;
   overflow: hidden;
-  min-height: 170px;
-  padding: 22px 22px 18px;
+  height: 100%;
+  max-height: none;
+  padding: 14px 16px 12px;
   border-radius: 22px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
@@ -241,8 +257,8 @@ main {
 }
 
 .kpi-card h2 {
-  margin: 10px 0 0;
-  font-size: 2rem;
+  margin: 8px 0 0;
+  font-size: 1.72rem;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -253,17 +269,17 @@ main {
   z-index: 2;
 }
 
-.kpi-sparkline {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 12px;
-  height: 62px;
-  border-radius: 18px;
-  opacity: 0.95;
-  pointer-events: none;
-  z-index: 1;
-}
+  .kpi-sparkline {
+    position: absolute;
+    left: 84px;
+    right: 16px;
+    bottom: -10px;
+    height: 90px;
+    border-radius: 14px;
+    opacity: 0.92;
+    pointer-events: none;
+    z-index: 1;
+  }
 
 .kpi-sparkline::before {
   content: '';
@@ -281,10 +297,10 @@ main {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 44px;
-  border-radius: 0 0 18px 18px;
-  filter: blur(12px);
-  opacity: 0.45;
+  height: 18px;
+  border-radius: 0 0 14px 14px;
+  filter: blur(6px);
+  opacity: 0.28;
 }
 
 .kpi-sparkline-positive::before {
@@ -337,8 +353,9 @@ main {
 }
 
 .donut-card {
-  min-height: 170px;
-  padding: 18px 20px;
+  grid-area: donut;
+  min-height: 138px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -359,8 +376,8 @@ main {
 }
 
 .donut-chart-wrapper {
-  width: 138px;
-  height: 138px;
+  width: 110px;
+  height: 110px;
   justify-self: center;
 }
 
@@ -926,7 +943,7 @@ button:disabled {
 }
 
 .section-spacing {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .sidebar-section:last-child {
@@ -1111,4 +1128,62 @@ button:disabled {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
+}
+
+.reserve-strip {
+  grid-area: reserve;
+  margin: 0;
+  height: 100%;
+}
+
+.reserve-strip-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 100%;
+  min-height: 0;
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(250, 204, 21, 0.14);
+  background: linear-gradient(135deg,
+      rgba(250, 204, 21, 0.12) 0%,
+      rgba(250, 204, 21, 0.04) 100%);
+  box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.04) inset;
+}
+
+.reserve-strip-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f4f4f5;
+}
+
+.reserve-strip-values {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.reserve-strip-values strong {
+  font-size: 20px;
+  font-weight: 700;
+  color: #facc15;
+}
+
+.reserve-strip-values span {
+  font-size: 13px;
+  color: #d4d4d8;
+}
+
+@media (max-width: 900px) {
+  .reserve-strip-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .reserve-strip-values {
+    justify-content: flex-start;
+  }
 }

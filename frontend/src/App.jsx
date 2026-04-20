@@ -13,11 +13,46 @@ import {
   Cell,
   CartesianGrid,
   Legend,
+  LabelList,
+
 } from 'recharts'
 
 
 
 function App() {
+
+
+  function formatTopExpenseName(transaction) {
+    const desc =
+      transaction.display_description ||
+      transaction.normalized_description ||
+      transaction.raw_description ||
+      ''
+
+    if (transaction.transaction_type === 'credit_card_bill_payment') {
+      return 'Pagamento de fatura'
+    }
+
+    if (transaction.transaction_type === 'pix_out') {
+      const match = desc.match(/pix (.*)/i)
+      if (match && match[1]) {
+        return `Pix → ${match[1].slice(0, 18)}`
+      }
+      return 'Pix enviado'
+    }
+
+    if (transaction.transaction_type === 'transfer_out') {
+      return 'Transferência enviada'
+    }
+
+    if (transaction.transaction_type === 'bill_payment') {
+      return desc.slice(0, 24)
+    }
+
+    return desc.slice(0, 24)
+  }
+
+
   const [transactions, setTransactions] = useState([])
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -268,6 +303,8 @@ function App() {
   const monthlyIncome = Number(summary?.total_income ?? 0)
   const monthlyExpenses = Number(summary?.total_expenses ?? 0)
   const monthlyBalance = monthlyIncome - monthlyExpenses
+  const reserveRedemptionTotal = Number(summary?.reserve_redemption_total ?? 0)
+  const reserveDependency = Number(summary?.reserve_dependency ?? 0)
 
   const rawCategories = byCategory
     .filter((item) => item.expense_total > 0)
@@ -310,17 +347,35 @@ function App() {
     'bill_payment',
   ]
 
-  const topExpenses = transactions
-    .filter((transaction) => EXPENSE_TYPES.includes(transaction.transaction_type))
-    .sort((a, b) => b.absolute_amount - a.absolute_amount)
-    .slice(0, 5)
-    .map((transaction) => ({
-      name: (transaction.normalized_description || transaction.raw_description).slice(
-        0,
-        24
-      ),
-      value: transaction.absolute_amount,
+
+
+  const groupedExpenses = {}
+
+  transactions
+    .filter((transaction) =>
+      EXPENSE_TYPES.includes(transaction.transaction_type)
+    )
+    .forEach((transaction) => {
+      const name = formatTopExpenseName(transaction)
+
+      if (!groupedExpenses[name]) {
+  groupedExpenses[name] = {
+    total: 0,
+    count: 0,
+  }
+}
+
+      groupedExpenses[name].total += transaction.absolute_amount
+      groupedExpenses[name].count += 1
+    })
+
+  const topExpenses = Object.entries(groupedExpenses)
+    .map(([name, data]) => ({
+      name: `${name} (${data.count})`,
+      value: data.total,
     }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5)
 
   if (loading) return <h1>Carregando...</h1>
   if (error) return <h1>{error}</h1>
@@ -399,29 +454,27 @@ function App() {
 
           <div className="dashboard-content">
             <section className="summary-grid section-spacing">
-              <div className="card kpi-card">
+              <div className="card kpi-card kpi-income">
                 <div className="kpi-card-content">
                   <p>Entrada do mês</p>
                   <h2 style={{ color: 'var(--color-positive)' }}>
                     R$ {monthlyIncome.toFixed(2)}
                   </h2>
                 </div>
-
                 <div className="kpi-sparkline kpi-sparkline-positive" />
               </div>
 
-              <div className="card kpi-card">
+              <div className="card kpi-card kpi-expenses">
                 <div className="kpi-card-content">
                   <p>Saída do mês</p>
                   <h2 style={{ color: 'var(--color-negative)' }}>
                     R$ {monthlyExpenses.toFixed(2)}
                   </h2>
                 </div>
-
                 <div className="kpi-sparkline kpi-sparkline-negative" />
               </div>
 
-              <div className="card kpi-card">
+              <div className="card kpi-card kpi-balance">
                 <div className="kpi-card-content">
                   <p>Saldo do mês</p>
                   <h2
@@ -435,75 +488,89 @@ function App() {
                     R$ {monthlyBalance.toFixed(2)}
                   </h2>
                 </div>
-
                 <div
                   className={`kpi-sparkline ${monthlyBalance >= 0
-                    ? 'kpi-sparkline-positive'
-                    : 'kpi-sparkline-negative'
+                      ? 'kpi-sparkline-positive'
+                      : 'kpi-sparkline-negative'
                     }`}
                 />
               </div>
 
-              <div className="table-container donut-card">
-                <h2>Despesas no mês</h2>
+              {/* 🔥 AGORA CERTO */}
+              <div className="reserve-strip">
+                <div className="reserve-strip-card">
+                  <div className="reserve-strip-label">Uso da reserva</div>
 
-                <div className="donut-content">
-                  <div className="donut-chart-wrapper">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={
-                            expenseByCategory.length
-                              ? expenseByCategory
-                              : [{ name: 'sem categoria', value: 1 }]
-                          }
-                          dataKey="value"
-                          nameKey="name"
-                          innerRadius={34}
-                          outerRadius={58}
-                          paddingAngle={2}
-                        >
-                          {(expenseByCategory.length
-                            ? expenseByCategory
-                            : [{ name: 'sem categoria', value: 1 }]
-                          ).map((entry, index) => (
-                            <Cell
-                              key={`month-cell-${index}`}
-                              fill={getCategoryColor(entry.name)}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip content={renderDonutTooltip} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  <div className="donut-legend">
-                    {donutLegendItems.map((item, index) => (
-                      <div key={item.name} className="donut-legend-item">
-                        <div className="donut-legend-label">
-                          <span
-                            className="donut-legend-color"
-                            style={{
-                              backgroundColor: getCategoryColor(item.name),
-                            }}
-                          />
-                          <span>{formatCategory(item.name)}</span>
-                        </div>
-
-                        <strong>R$ {Number(item.value).toFixed(2)}</strong>
-                      </div>
-                    ))}
-
-                    {!donutLegendItems.length && (
-                      <div className="donut-legend-empty">
-                        Sem despesas categorizadas
-                      </div>
-                    )}
+                  <div className="reserve-strip-values">
+                    <strong>R$ {reserveRedemptionTotal.toFixed(2)}</strong>
+                    <span>{reserveDependency.toFixed(1)}% das saídas do mês</span>
                   </div>
                 </div>
               </div>
+
+              {/* 🔥 DONUT VOLTA PRO GRID */}
+              <div className="table-container donut-card">
+  <h2>Despesas no mês</h2>
+
+  <div className="donut-content">
+    <div className="donut-chart-wrapper">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={
+              expenseByCategory.length
+                ? expenseByCategory
+                : [{ name: 'sem categoria', value: 1 }]
+            }
+            dataKey="value"
+            nameKey="name"
+            innerRadius={38}
+            outerRadius={52}
+            paddingAngle={2}
+          >
+            {(expenseByCategory.length
+              ? expenseByCategory
+              : [{ name: 'sem categoria', value: 1 }]
+            ).map((entry, index) => (
+              <Cell
+                key={`month-cell-${index}`}
+                fill={getCategoryColor(entry.name)}
+              />
+            ))}
+          </Pie>
+          <Tooltip content={renderDonutTooltip} />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+
+    <div className="donut-legend">
+      {donutLegendItems.map((item) => (
+        <div key={item.name} className="donut-legend-item">
+          <div className="donut-legend-label">
+            <span
+              className="donut-legend-color"
+              style={{
+                backgroundColor: getCategoryColor(item.name),
+              }}
+            />
+            <span>{formatCategory(item.name)}</span>
+          </div>
+
+          <strong>R$ {Number(item.value).toFixed(2)}</strong>
+        </div>
+      ))}
+
+      {!donutLegendItems.length && (
+        <div className="donut-legend-empty">
+          Sem despesas categorizadas
+        </div>
+      )}
+    </div>
+  </div>
+</div>
             </section>
+
+
 
             <section className="analytics-grid">
               <div className="table-container analytics-main-card">
@@ -588,7 +655,7 @@ function App() {
                       data={topExpenses}
                       layout="vertical"
                       barCategoryGap="26%"
-                      margin={{ top: 35, right: 10, left: 10, bottom: 0 }}
+                      margin={{ top: 35, right: 70, left: 10, bottom: 0 }}
                     >
                       <CartesianGrid
                         stroke="rgba(228, 228, 231, 0.08)"
@@ -600,6 +667,7 @@ function App() {
                         stroke="rgba(228, 228, 231, 0.35)"
                         tickLine={false}
                         axisLine={false}
+                        domain={[0, 'dataMax + 250']}
                         tickFormatter={(value) => `R$ ${value / 1000}k`}
                       />
                       <YAxis
@@ -627,7 +695,18 @@ function App() {
                         fill="var(--color-negative)"
                         barSize={20}
                         radius={[0, 8, 8, 0]}
-                      />
+                      >
+                        <LabelList
+                          dataKey="value"
+                          position="right"
+                          formatter={(value) => `R$ ${Number(value).toFixed(2)}`}
+                          style={{
+                            fill: '#e5e7eb',
+                            fontSize: 13,
+                            fontWeight: 600,
+                          }}
+                        />
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
