@@ -42,6 +42,7 @@ def consolidate_transactions(
     real_expenses = 0.0
     internal_transfers_total = 0.0
     ignored_total = 0.0
+    reserve_redemption_total = 0.0
 
     income_transactions = []
     expense_transactions = []
@@ -71,7 +72,15 @@ def consolidate_transactions(
             internal_transfers_total += absolute_amount
             internal_transfer_transactions.append(transaction)
 
+        if transaction.get("transaction_type") == "investment_redemption":
+            reserve_redemption_total += absolute_amount
+
     net_cashflow = real_income - real_expenses
+
+    reserve_dependency = 0.0
+
+    if real_expenses > 0:
+        reserve_dependency = (reserve_redemption_total / real_expenses) * 100
 
     return {
         "transactions_count": len(transactions),
@@ -85,6 +94,8 @@ def consolidate_transactions(
         "real_expenses": round(real_expenses, 2),
         "ignored_total": round(ignored_total, 2),
         "internal_transfers_total": round(internal_transfers_total, 2),
+        "reserve_redemption_total": round(reserve_redemption_total, 2),
+        "reserve_dependency": round(reserve_dependency, 2),
         "net_cashflow": round(net_cashflow, 2),
         "by_type": build_consolidated_by_type(transactions),
         "by_source_type": build_consolidated_by_source_type(transactions),
@@ -226,11 +237,24 @@ def get_by_category_summary(
     transactions = transactions_data["items"]
     grouped = {}
 
+    excluded_types = {
+        "purchase",
+        "investment_application",
+        "investment_redemption",
+        "credit_card_bill_payment",
+        "pix_out",
+        "transfer_out",
+        "pix_in",
+        "transfer_in",
+    }
+
     for transaction in transactions:
         is_ignored = int(transaction["is_ignored_in_spending"])
         is_internal = int(transaction["is_internal_transfer"])
+        transaction_type_value = transaction.get("transaction_type")
+        direction = transaction["direction"]
+        absolute_amount = float(transaction["absolute_amount"])
 
-        # Dashboard de categoria deve mostrar só gasto/entrada real
         if is_ignored or is_internal:
             continue
 
@@ -243,12 +267,13 @@ def get_by_category_summary(
             or "sem categoria"
         )
 
-        # Movimentações não entram no donut nem no resumo por categoria
+        # movimentações não entram no donut
         if category == "movimentacoes":
             continue
 
-        direction = transaction["direction"]
-        absolute_amount = float(transaction["absolute_amount"])
+        # tipos que não devem poluir o resumo por categoria
+        if transaction_type_value in excluded_types:
+            continue
 
         if category not in grouped:
             grouped[category] = {
