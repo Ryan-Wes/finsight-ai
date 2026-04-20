@@ -1,0 +1,119 @@
+@media (max-width: 1900px) {
+  .reserve-strip-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .reserve-strip-values {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 1400px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .donut-card {
+    grid-column: 1 / -1;
+  }
+
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .container {
+    padding: 18px 16px 24px;
+  }
+
+  .header h1 {
+    font-size: 38px;
+  }
+
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    width: 100%;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .donut-content {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .donut-legend {
+    width: 100%;
+  }
+
+  .transactions-header-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .back-link-button {
+    width: fit-content;
+  }
+
+  .transactions-toolbar-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .transactions-toolbar-left,
+  .transactions-toolbar-right {
+    width: 100%;
+  }
+
+  .transactions-toolbar-right {
+    justify-content: flex-start;
+  }
+
+  .transactions-filters select {
+    min-width: 180px;
+    flex: 1 1 180px;
+  }
+}
+
+@media (max-width: 640px) {
+  .transactions-page {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .transactions-toolbar-left {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .transactions-toolbar-left .filter-button,
+  .transactions-toolbar-left .secondary-button {
+    width: 100%;
+  }
+
+  .transactions-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .transactions-filters select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .success-banner {
+    max-width: 100%;
+  }
+}
