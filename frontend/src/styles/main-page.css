@@ -322,6 +322,7 @@
 .reserve-strip-card {
   display: flex;
   align-items: center;
+  flex-direction: row;
   justify-content: space-between;
   gap: 16px;
   height: 100%;
@@ -335,6 +336,7 @@
     rgba(250, 204, 21, 0.04) 100%
   );
   box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.04) inset;
+  flex-wrap: nowrap;
 }
 
 .reserve-strip-label {
@@ -345,9 +347,9 @@
 
 .reserve-strip-values {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 14px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
 }
 
@@ -360,6 +362,7 @@
 .reserve-strip-values span {
   font-size: 13px;
   color: #d4d4d8;
+  white-space: nowrap;
 }
 
 .section-spacing {

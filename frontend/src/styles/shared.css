@@ -569,3 +569,88 @@ button:disabled {
   visibility: visible;
   transform: translateY(0);
 }
+
+.page-loader-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.page-loader {
+  width: 100%;
+  max-width: 1400px;
+}
+
+.page-loader-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.loader-title {
+  width: 320px;
+  height: 56px;
+  border-radius: 18px;
+  margin-bottom: 14px;
+}
+
+.loader-subtitle {
+  width: 420px;
+  height: 22px;
+  border-radius: 999px;
+}
+
+.page-loader-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.page-loader-card {
+  height: 170px;
+  border-radius: 24px;
+}
+
+.page-loader-main {
+  height: 420px;
+  border-radius: 24px;
+}
+
+.shimmer-block {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015)),
+    #1a1220;
+  border: 1px solid rgba(167, 139, 250, 0.14);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.shimmer-block::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      110deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.03) 35%,
+      rgba(192, 132, 252, 0.16) 50%,
+      rgba(255, 255, 255, 0.03) 65%,
+      transparent 100%
+    );
+  transform: translateX(-100%);
+  animation: pageShimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes pageShimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

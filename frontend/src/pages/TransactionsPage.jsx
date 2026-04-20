@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import '../index.css'
 import { getCategoryDisplayColor } from '../utils/categoryStyle'
+import PageLoader from '../components/PageLoader'
 
 
 
@@ -636,15 +636,7 @@ function TransactionsPage() {
     return Math.ceil(total / pagination.limit)
   }, [total, pagination.limit])
 
-  if (loading) {
-    return (
-      <main>
-        <div className="container">
-          <h1>Carregando transações...</h1>
-        </div>
-      </main>
-    )
-  }
+  if (loading) return <PageLoader />
 
   if (error) {
     return (
@@ -657,422 +649,422 @@ function TransactionsPage() {
   }
 
   return (
-  <main>
-    <div className="container transactions-page">
-      <header className="header transactions-header">
-        <div className="transactions-header-top">
-          <div>
+    <main>
+      <div className="container transactions-page">
+        <header className="header transactions-header">
+          <div className="transactions-header-main">
             <h1>Transações</h1>
             <p>Visualize, filtre, importe arquivos e revise categorias</p>
+
+            <div className="transactions-header-link">
+              <Link
+                to="/"
+                className="back-link-button"
+              >
+                ← Voltar para dashboard
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        <section className="transactions-toolbar-card">
+          <div className="transactions-toolbar-left">
+            <button
+              className="filter-button"
+              onClick={() => setShowUpload(!showUpload)}
+            >
+              {showUpload ? 'Ocultar importação' : 'Importar arquivos'}
+            </button>
+
+            <button
+              className="secondary-button"
+              onClick={openBulkEditModal}
+              disabled={!selectedTransactionIds.length}
+            >
+              Editar selecionadas ({selectedTransactionIds.length})
+            </button>
           </div>
 
-          <Link
-            to="/"
-            className="back-link-button"
-          >
-            ← Voltar para dashboard
-          </Link>
-        </div>
-      </header>
+          <div className="transactions-toolbar-right">
+            <span className="transactions-total-pill">
+              Total encontrado: {total}
+            </span>
+          </div>
+        </section>
 
-      <section className="transactions-toolbar-card">
-        <div className="transactions-toolbar-left">
-          <button
-            className="filter-button"
-            onClick={() => setShowUpload(!showUpload)}
-          >
-            {showUpload ? 'Ocultar importação' : 'Importar arquivos'}
-          </button>
+        {showUpload && (
+          <section className="table-container transactions-upload-card">
+            <div className="transactions-section-header">
+              <div>
+                <h2>Importar dados</h2>
+                <p>Envie PDFs e CSVs para atualizar a base</p>
+              </div>
+            </div>
 
-          <button
-            className="secondary-button"
-            onClick={openBulkEditModal}
-            disabled={!selectedTransactionIds.length}
-          >
-            Editar selecionadas ({selectedTransactionIds.length})
-          </button>
-        </div>
+            <div
+              className={`upload-dropzone ${isDragging ? 'dragging' : ''}`}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setIsDragging(true)
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault()
+                setIsDragging(false)
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                setIsDragging(false)
+                handleSelectedFiles(e.dataTransfer.files)
+              }}
+            >
+              <p className="upload-title">
+                Arraste PDFs e CSVs aqui ou escolha no botão
+              </p>
 
-        <div className="transactions-toolbar-right">
-          <span className="transactions-total-pill">
-            Total encontrado: {total}
-          </span>
-        </div>
-      </section>
+              <p className="upload-subtitle">
+                Você pode enviar vários arquivos de uma vez
+              </p>
 
-      {showUpload && (
-        <section className="table-container transactions-upload-card">
+              <div className="upload-actions">
+                <label className="filter-button upload-label">
+                  Escolher arquivos
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.csv"
+                    className="hidden-file-input"
+                    onChange={(e) => handleSelectedFiles(e.target.files)}
+                  />
+                </label>
+
+                <button
+                  className="filter-button"
+                  onClick={handleUploadFiles}
+                  disabled={uploading || !selectedFiles.length}
+                >
+                  {uploading ? 'Enviando...' : 'Enviar arquivos'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={handleResetDatabase}
+                  disabled={resetting}
+                >
+                  {resetting ? 'Limpando...' : 'Limpar base'}
+                </button>
+              </div>
+            </div>
+
+            {selectedFiles.length > 0 && (
+              <div className="transactions-upload-block">
+                <h3 className="transactions-subtitle">
+                  Arquivos selecionados ({selectedFiles.length})
+                </h3>
+
+                <div className="top-category-list">
+                  {selectedFiles.map((file) => (
+                    <div
+                      key={`${file.name}-${file.size}`}
+                      className="top-category-item"
+                    >
+                      <span>{file.name}</span>
+                      <strong>{(file.size / 1024).toFixed(1)} KB</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {uploadResults.length > 0 && (
+              <div className="transactions-upload-block">
+                <h3 className="transactions-subtitle">
+                  Resultado do upload
+                </h3>
+
+                <div className="top-category-list">
+                  {uploadResults.map((result, index) => (
+                    <div
+                      key={`${result.filename}-${index}`}
+                      className="top-category-item"
+                    >
+                      <span>{result.original_filename || result.filename}</span>
+                      <strong
+                        style={{ color: result.error ? '#ef4444' : '#22c55e' }}
+                      >
+                        {result.error
+                          ? `Erro: ${result.error}`
+                          : `OK • inseridas: ${result.inserted_count ?? 0} • ignoradas: ${result.skipped_count ?? 0}`}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {successMessage && (
+          <div className="success-banner">
+            {successMessage}
+          </div>
+        )}
+
+        <section className="table-container transactions-filters-card">
           <div className="transactions-section-header">
             <div>
-              <h2>Importar dados</h2>
-              <p>Envie PDFs e CSVs para atualizar a base</p>
+              <h2>Filtros</h2>
+              <p>Refine a listagem sem sair da página</p>
             </div>
           </div>
 
-          <div
-            className={`upload-dropzone ${isDragging ? 'dragging' : ''}`}
-            onDragOver={(e) => {
-              e.preventDefault()
-              setIsDragging(true)
-            }}
-            onDragLeave={(e) => {
-              e.preventDefault()
-              setIsDragging(false)
-            }}
-            onDrop={(e) => {
-              e.preventDefault()
-              setIsDragging(false)
-              handleSelectedFiles(e.dataTransfer.files)
-            }}
-          >
-            <p className="upload-title">
-              Arraste PDFs e CSVs aqui ou escolha no botão
-            </p>
+          <div className="filters transactions-filters">
+            <select
+              value={filters.month}
+              onChange={(e) => handleFilterChange('month', e.target.value)}
+            >
+              <option value="">Todos os meses</option>
+              {months.map((month) => (
+                <option key={month} value={month}>
+                  {formatMonthLabel(month)}
+                </option>
+              ))}
+            </select>
 
-            <p className="upload-subtitle">
-              Você pode enviar vários arquivos de uma vez
-            </p>
+            <select
+              value={filters.type}
+              onChange={(e) => handleFilterChange('type', e.target.value)}
+            >
+              <option value="">Todos os tipos</option>
+              {Object.entries(transactionTypeLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
 
-            <div className="upload-actions">
-              <label className="filter-button upload-label">
-                Escolher arquivos
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.csv"
-                  className="hidden-file-input"
-                  onChange={(e) => handleSelectedFiles(e.target.files)}
-                />
-              </label>
-
-              <button
-                className="filter-button"
-                onClick={handleUploadFiles}
-                disabled={uploading || !selectedFiles.length}
-              >
-                {uploading ? 'Enviando...' : 'Enviar arquivos'}
-              </button>
-
-              <button
-                className="secondary-button"
-                onClick={handleResetDatabase}
-                disabled={resetting}
-              >
-                {resetting ? 'Limpando...' : 'Limpar base'}
-              </button>
-            </div>
+            <select
+              value={filters.source}
+              onChange={(e) => handleFilterChange('source', e.target.value)}
+            >
+              <option value="">Todas as origens</option>
+              {Object.entries(sourceLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
-
-          {selectedFiles.length > 0 && (
-            <div className="transactions-upload-block">
-              <h3 className="transactions-subtitle">
-                Arquivos selecionados ({selectedFiles.length})
-              </h3>
-
-              <div className="top-category-list">
-                {selectedFiles.map((file) => (
-                  <div
-                    key={`${file.name}-${file.size}`}
-                    className="top-category-item"
-                  >
-                    <span>{file.name}</span>
-                    <strong>{(file.size / 1024).toFixed(1)} KB</strong>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {uploadResults.length > 0 && (
-            <div className="transactions-upload-block">
-              <h3 className="transactions-subtitle">
-                Resultado do upload
-              </h3>
-
-              <div className="top-category-list">
-                {uploadResults.map((result, index) => (
-                  <div
-                    key={`${result.filename}-${index}`}
-                    className="top-category-item"
-                  >
-                    <span>{result.original_filename || result.filename}</span>
-                    <strong
-                      style={{ color: result.error ? '#ef4444' : '#22c55e' }}
-                    >
-                      {result.error
-                        ? `Erro: ${result.error}`
-                        : `OK • inseridas: ${result.inserted_count ?? 0} • ignoradas: ${result.skipped_count ?? 0}`}
-                    </strong>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </section>
-      )}
 
-      {successMessage && (
-        <div className="success-banner">
-          {successMessage}
-        </div>
-      )}
-
-      <section className="table-container transactions-filters-card">
-        <div className="transactions-section-header">
-          <div>
-            <h2>Filtros</h2>
-            <p>Refine a listagem sem sair da página</p>
+        <section className="table-container transactions-table-card">
+          <div className="transactions-section-header transactions-table-header">
+            <div>
+              <h2>Lista de transações</h2>
+              <p>Edite categorias direto pela tabela</p>
+            </div>
           </div>
-        </div>
 
-        <div className="filters transactions-filters">
-          <select
-            value={filters.month}
-            onChange={(e) => handleFilterChange('month', e.target.value)}
-          >
-            <option value="">Todos os meses</option>
-            {months.map((month) => (
-              <option key={month} value={month}>
-                {formatMonthLabel(month)}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filters.type}
-            onChange={(e) => handleFilterChange('type', e.target.value)}
-          >
-            <option value="">Todos os tipos</option>
-            {Object.entries(transactionTypeLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filters.source}
-            onChange={(e) => handleFilterChange('source', e.target.value)}
-          >
-            <option value="">Todas as origens</option>
-            {Object.entries(sourceLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </section>
-
-      <section className="table-container transactions-table-card">
-        <div className="transactions-section-header transactions-table-header">
-          <div>
-            <h2>Lista de transações</h2>
-            <p>Edite categorias direto pela tabela</p>
-          </div>
-        </div>
-
-        <div className="transactions-table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th className="cell-center checkbox-cell">
-                  <input
-                    type="checkbox"
-                    ref={(el) => {
-                      if (el) {
-                        el.indeterminate =
-                          selectedTransactionIds.length > 0 &&
-                          selectedTransactionIds.length < transactions.length
+          <div className="transactions-table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th className="cell-center checkbox-cell">
+                    <input
+                      type="checkbox"
+                      ref={(el) => {
+                        if (el) {
+                          el.indeterminate =
+                            selectedTransactionIds.length > 0 &&
+                            selectedTransactionIds.length < transactions.length
+                        }
+                      }}
+                      checked={
+                        transactions.length > 0 &&
+                        transactions.every((transaction) =>
+                          selectedTransactionIds.includes(transaction.id)
+                        )
                       }
-                    }}
-                    checked={
-                      transactions.length > 0 &&
-                      transactions.every((transaction) =>
-                        selectedTransactionIds.includes(transaction.id)
-                      )
-                    }
-                    onChange={toggleSelectAllCurrentPage}
-                  />
-                </th>
-                <th className="cell-center date-cell"><span>Data</span></th>
-                <th className="cell-center transaction-description-cell"><span>Descrição</span></th>
-                <th className="cell-center type-cell"><span>Tipo</span></th>
-                <th className="cell-center origin-cell"><span>Origem</span></th>
-                <th className="cell-center category-cell"><span>Categoria</span></th>
-                <th className="cell-center subcategory-cell"><span>Subcategoria</span></th>
-                <th className="cell-center source-cell"><span>Definição</span></th>
-                <th className="cell-center value-cell"><span>Valor</span></th>
-              </tr>
-            </thead>
+                      onChange={toggleSelectAllCurrentPage}
+                    />
+                  </th>
+                  <th className="cell-center date-cell"><span>Data</span></th>
+                  <th className="cell-center transaction-description-cell"><span>Descrição</span></th>
+                  <th className="cell-center type-cell"><span>Tipo</span></th>
+                  <th className="cell-center origin-cell"><span>Origem</span></th>
+                  <th className="cell-center category-cell"><span>Categoria</span></th>
+                  <th className="cell-center subcategory-cell"><span>Subcategoria</span></th>
+                  <th className="cell-center source-cell"><span>Definição</span></th>
+                  <th className="cell-center value-cell"><span>Valor</span></th>
+                </tr>
+              </thead>
 
-            <tbody>
-              {transactions.map((transaction) => {
-                const hasMissingMainCategory =
-                  !transaction.main_category || transaction.main_category.trim() === ''
+              <tbody>
+                {transactions.map((transaction) => {
+                  const hasMissingMainCategory =
+                    !transaction.main_category || transaction.main_category.trim() === ''
 
-                const hasMissingSubcategory =
-                  !transaction.subcategory || transaction.subcategory.trim() === ''
+                  const hasMissingSubcategory =
+                    !transaction.subcategory || transaction.subcategory.trim() === ''
 
-                const isResolvedAsOthers =
-                  transaction.main_category === 'outros' &&
-                  transaction.subcategory === 'outros'
+                  const isResolvedAsOthers =
+                    transaction.main_category === 'outros' &&
+                    transaction.subcategory === 'outros'
 
-                const isResolvedAsNotIdentified =
-                  transaction.main_category === 'nao_identificado' &&
-                  transaction.subcategory === 'nao_identificado'
+                  const isResolvedAsNotIdentified =
+                    transaction.main_category === 'nao_identificado' &&
+                    transaction.subcategory === 'nao_identificado'
 
-                const shouldHighlightRow =
-                  hasMissingMainCategory ||
-                  hasMissingSubcategory ||
-                  (
-                    !isResolvedAsOthers &&
-                    !isResolvedAsNotIdentified &&
+                  const shouldHighlightRow =
+                    hasMissingMainCategory ||
+                    hasMissingSubcategory ||
                     (
-                      transaction.main_category === 'outros' ||
-                      transaction.subcategory === 'outros' ||
-                      transaction.main_category === 'nao_identificado' ||
-                      transaction.subcategory === 'nao_identificado'
+                      !isResolvedAsOthers &&
+                      !isResolvedAsNotIdentified &&
+                      (
+                        transaction.main_category === 'outros' ||
+                        transaction.subcategory === 'outros' ||
+                        transaction.main_category === 'nao_identificado' ||
+                        transaction.subcategory === 'nao_identificado'
+                      )
                     )
-                  )
 
-                return (
-                  <tr
-                    key={transaction.id}
-                    className={`${shouldHighlightRow ? 'row-needs-category' : ''}
+                  return (
+                    <tr
+                      key={transaction.id}
+                      className={`${shouldHighlightRow ? 'row-needs-category' : ''}
             ${Number(transaction.category_reviewed) === 0 ? 'row-not-reviewed' : ''}`}
-                  >
-                    <td className="cell-center checkbox-cell">
-                      <input
-                        type="checkbox"
-                        checked={selectedTransactionIds.includes(transaction.id)}
-                        onChange={() => toggleTransactionSelection(transaction.id)}
-                      />
-                    </td>
-
-                    <td className="cell-center date-cell">
-                      {formatDate(transaction.transaction_date)}
-                    </td>
-
-                    <td className="cell-left transaction-description-cell">
-                      <span
-                        className={`transaction-description ${transaction.user_note ? 'has-note' : ''}`}
-                        data-note={transaction.user_note || ''}
-                      >
-                        {transaction.display_description || transaction.raw_description}
-                      </span>
-                    </td>
-
-                    <td className="cell-center type-cell">
-                      {transactionTypeLabels[transaction.transaction_type] ||
-                        transaction.transaction_type}
-                    </td>
-
-                    <td className="cell-center origin-cell">
-                      {sourceLabels[transaction.source_type] || transaction.source_type}
-                    </td>
-
-                    <td className="cell-center category-cell">
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(transaction)}
-                        className="category-badge category-trigger"
-                        title="Clique para editar"
-                        style={{
-                          backgroundColor: getCategoryDisplayColor(
-                            getCategoryColor(transaction.main_category),
-                            0.15
-                          ),
-                          color: getCategoryColor(transaction.main_category),
-                          fontWeight: 600,
-                        }}
-                      >
-                        <span>
-                          {formatCategoryLabel(transaction.main_category) || '-'}
-                        </span>
-                        <span className="category-chevron">˅</span>
-                      </button>
-                    </td>
-
-                    <td className="cell-center subcategory-cell">
-                      <span
-                        className="category-badge"
-                        style={{
-                          backgroundColor: getCategoryDisplayColor(
-                            getCategoryColor(transaction.main_category),
-                            0.15
-                          ),
-                          color: getCategoryColor(transaction.main_category),
-                          fontWeight: 600,
-                        }}
-                      >
-                        {transaction.subcategory
-                          ? formatCategoryLabel(transaction.subcategory)
-                          : '-'}
-                      </span>
-                    </td>
-
-                    <td className="cell-center source-cell">
-                      <span
-                        className={`source-badge ${transaction.category_source === 'manual'
-                          ? 'source-manual'
-                          : 'source-auto'
-                          }`}
-                      >
-                        {transaction.category_source === 'manual' ? 'Manual' : 'Auto'}
-                      </span>
-                    </td>
-
-                    <td
-                      className={
-                        transaction.direction === 'in'
-                          ? 'green cell-left value-cell'
-                          : 'red cell-left value-cell'
-                      }
                     >
-                      {transaction.direction === 'in' ? '+' : '-'}{' '}
-                      {formatCurrency(transaction.absolute_amount)}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                      <td className="cell-center checkbox-cell">
+                        <input
+                          type="checkbox"
+                          checked={selectedTransactionIds.includes(transaction.id)}
+                          onChange={() => toggleTransactionSelection(transaction.id)}
+                        />
+                      </td>
 
-        <div className="pagination transactions-pagination">
-          <button
-            className="secondary-button"
-            onClick={() =>
-              setPagination((prev) => ({
-                ...prev,
-                offset: Math.max(prev.offset - prev.limit, 0),
-              }))
-            }
-            disabled={pagination.offset === 0}
-          >
-            Anterior
-          </button>
+                      <td className="cell-center date-cell">
+                        {formatDate(transaction.transaction_date)}
+                      </td>
 
-          <span>
-            Página {currentPage} de {totalPages}
-          </span>
+                      <td className="cell-left transaction-description-cell">
+                        <span
+                          className={`transaction-description ${transaction.user_note ? 'has-note' : ''}`}
+                          data-note={transaction.user_note || ''}
+                        >
+                          {transaction.display_description || transaction.raw_description}
+                        </span>
+                      </td>
 
-          <button
-            className="secondary-button"
-            onClick={() =>
-              setPagination((prev) => ({
-                ...prev,
-                offset: prev.offset + prev.limit,
-              }))
-            }
-            disabled={currentPage >= totalPages}
-          >
-            Próxima
-          </button>
-        </div>
-      </section>
-    </div>
+                      <td className="cell-center type-cell">
+                        {transactionTypeLabels[transaction.transaction_type] ||
+                          transaction.transaction_type}
+                      </td>
+
+                      <td className="cell-center origin-cell">
+                        {sourceLabels[transaction.source_type] || transaction.source_type}
+                      </td>
+
+                      <td className="cell-center category-cell">
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(transaction)}
+                          className="category-badge category-trigger"
+                          title="Clique para editar"
+                          style={{
+                            backgroundColor: getCategoryDisplayColor(
+                              getCategoryColor(transaction.main_category),
+                              0.15
+                            ),
+                            color: getCategoryColor(transaction.main_category),
+                            fontWeight: 600,
+                          }}
+                        >
+                          <span>
+                            {formatCategoryLabel(transaction.main_category) || '-'}
+                          </span>
+                          <span className="category-chevron">˅</span>
+                        </button>
+                      </td>
+
+                      <td className="cell-center subcategory-cell">
+                        <span
+                          className="category-badge"
+                          style={{
+                            backgroundColor: getCategoryDisplayColor(
+                              getCategoryColor(transaction.main_category),
+                              0.15
+                            ),
+                            color: getCategoryColor(transaction.main_category),
+                            fontWeight: 600,
+                          }}
+                        >
+                          {transaction.subcategory
+                            ? formatCategoryLabel(transaction.subcategory)
+                            : '-'}
+                        </span>
+                      </td>
+
+                      <td className="cell-center source-cell">
+                        <span
+                          className={`source-badge ${transaction.category_source === 'manual'
+                            ? 'source-manual'
+                            : 'source-auto'
+                            }`}
+                        >
+                          {transaction.category_source === 'manual' ? 'Manual' : 'Auto'}
+                        </span>
+                      </td>
+
+                      <td
+                        className={
+                          transaction.direction === 'in'
+                            ? 'green cell-left value-cell'
+                            : 'red cell-left value-cell'
+                        }
+                      >
+                        {transaction.direction === 'in' ? '+' : '-'}{' '}
+                        {formatCurrency(transaction.absolute_amount)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="pagination transactions-pagination">
+            <button
+              className="secondary-button"
+              onClick={() =>
+                setPagination((prev) => ({
+                  ...prev,
+                  offset: Math.max(prev.offset - prev.limit, 0),
+                }))
+              }
+              disabled={pagination.offset === 0}
+            >
+              Anterior
+            </button>
+
+            <span>
+              Página {currentPage} de {totalPages}
+            </span>
+
+            <button
+              className="secondary-button"
+              onClick={() =>
+                setPagination((prev) => ({
+                  ...prev,
+                  offset: prev.offset + prev.limit,
+                }))
+              }
+              disabled={currentPage >= totalPages}
+            >
+              Próxima
+            </button>
+          </div>
+        </section>
+      </div>
 
       {isSingleEditMode && !isBulkEditMode && (
         <div className="modal-overlay" onClick={closeEditModal}>

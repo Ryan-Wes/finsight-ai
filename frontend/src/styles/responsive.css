@@ -1,13 +1,3 @@
-@media (max-width: 1900px) {
-  .reserve-strip-card {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .reserve-strip-values {
-    justify-content: flex-start;
-  }
-}
 
 @media (max-width: 1400px) {
   .summary-grid {
@@ -56,15 +46,6 @@
 
   .donut-legend {
     width: 100%;
-  }
-
-  .transactions-header-top {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .back-link-button {
-    width: fit-content;
   }
 
   .transactions-toolbar-card {

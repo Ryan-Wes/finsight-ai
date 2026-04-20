@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import './index.css'
+import PageLoader from './components/PageLoader'
 
 import {
   BarChart,
@@ -377,7 +377,7 @@ function App() {
     .sort((a, b) => b.value - a.value)
     .slice(0, 5)
 
-  if (loading) return <h1>Carregando...</h1>
+  if (loading) return <PageLoader />
   if (error) return <h1>{error}</h1>
 
   return (

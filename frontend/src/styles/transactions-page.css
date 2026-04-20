@@ -21,18 +21,18 @@
   position: relative;
   max-width: none;
   margin: 0 0 20px;
-  text-align: left;
-  align-items: stretch;
+  text-align: center;
+  align-items: center;
 }
 
-.transactions-header-top {
+.transactions-header-main {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
-.transactions-header-top h1 {
+.transactions-header-main h1 {
   margin-bottom: 8px;
   font-size: 3rem;
   line-height: 0.95;
@@ -41,41 +41,38 @@
   text-shadow: 0 0 20px rgba(139, 92, 246, 0.08);
 }
 
-.transactions-header-top p {
+.transactions-header-main p {
   margin: 0;
   font-size: 1.08rem;
   color: #b5b0c4;
 }
 
+.transactions-header-link {
+  margin-top: 16px;
+}
+
 .back-link-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 46px;
-  padding: 0 16px;
-  border-radius: 14px;
+  color: #8864f6;
   text-decoration: none;
-  color: #f3e8ff;
-  background:
-    linear-gradient(135deg, rgba(124, 58, 237, 0.28), rgba(91, 33, 182, 0.20));
-  border: 1px solid rgba(167, 139, 250, 0.24);
-  box-shadow:
-    0 10px 30px rgba(76, 29, 149, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  backdrop-filter: blur(8px);
+  font-weight: 500;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  min-height: auto;
+  border-radius: 0;
+  display: inline;
+  backdrop-filter: none;
+  transform: none;
+  transition: color 0.2s ease;
 }
 
 .back-link-button:hover {
-  transform: translateY(-1px);
-  background:
-    linear-gradient(135deg, rgba(124, 58, 237, 0.38), rgba(91, 33, 182, 0.28));
-  border-color: rgba(167, 139, 250, 0.38);
-  color: #ffffff;
-  box-shadow:
-    0 14px 32px rgba(76, 29, 149, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: #c084fc;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  transform: none;
 }
 
 .transactions-toolbar-card {
