@@ -162,6 +162,11 @@ def list_transactions(
     month: str | None = None,
     transaction_type: str | None = None,
     source: str | None = None,
+    main_category: str | None = None,
+    subcategory: str | None = None,
+    category_source: str | None = None,
+    reviewed: int | None = None,
+    pending_review: int | None = None,
     sort: str = "date_desc",
     limit: int = 50,
     offset: int = 0,
@@ -187,6 +192,48 @@ def list_transactions(
         if source:
             base_query += " AND source_type = ?"
             params.append(source)
+
+        if main_category:
+            base_query += " AND main_category = ?"
+            params.append(main_category)
+
+        if subcategory:
+            base_query += " AND subcategory = ?"
+            params.append(subcategory)
+
+        if category_source:
+            base_query += " AND category_source = ?"
+            params.append(category_source)
+
+        if reviewed is not None:
+            base_query += " AND category_reviewed = ?"
+            params.append(reviewed)
+
+        if pending_review == 1:
+            base_query += """
+                AND (
+                    main_category IS NULL
+                    OR TRIM(main_category) = ''
+                    OR subcategory IS NULL
+                    OR TRIM(subcategory) = ''
+                    OR main_category = 'nao_identificado'
+                    OR subcategory = 'nao_identificado'
+                    OR (
+                        main_category = 'outros'
+                        AND (
+                            subcategory IS NULL
+                            OR TRIM(subcategory) = ''
+                        )
+                    )
+                    OR (
+                        subcategory = 'outros'
+                        AND (
+                            main_category IS NULL
+                            OR TRIM(main_category) = ''
+                        )
+                    )
+                )
+            """
 
         sort_map = {
             "date_desc": "transaction_date DESC, id DESC",
