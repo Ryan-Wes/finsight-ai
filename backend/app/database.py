@@ -29,6 +29,7 @@ def _ensure_transactions_columns(cursor: sqlite3.Cursor) -> None:
         "subcategory": "TEXT",
         "display_description": "TEXT",
         "user_note": "TEXT",
+        "entry_mode": "TEXT DEFAULT 'imported'",
     }
 
     for column_name, column_definition in columns_to_add.items():
@@ -58,6 +59,35 @@ def create_tables() -> None:
                 import_status TEXT NOT NULL,
                 warning_message TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key TEXT NOT NULL UNIQUE,
+                label TEXT NOT NULL,
+                color TEXT NOT NULL,
+                is_system INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS subcategories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                category_id INTEGER NOT NULL,
+                key TEXT NOT NULL,
+                label TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(category_id, key),
+                FOREIGN KEY (category_id) REFERENCES categories (id)
             )
             """
         )

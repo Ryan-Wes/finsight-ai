@@ -67,6 +67,7 @@ function TransactionsPage() {
   const [selectedFiles, setSelectedFiles] = useState([])
   const [uploadResults, setUploadResults] = useState([])
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [resetting, setResetting] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
@@ -99,6 +100,17 @@ function TransactionsPage() {
   const [categorySchema, setCategorySchema] = useState([])
   const [subcategoryMap, setSubcategoryMap] = useState(FALLBACK_SUBCATEGORY_MAP)
 
+  // criação de categoria
+  const [showCreateCategory, setShowCreateCategory] = useState(false)
+  const [newCategoryLabel, setNewCategoryLabel] = useState('')
+  const [newCategoryColor, setNewCategoryColor] = useState('#a78bfa')
+  const [creatingCategory, setCreatingCategory] = useState(false)
+
+  // criação de subcategoria
+  const [showCreateSubcategory, setShowCreateSubcategory] = useState(false)
+  const [newSubcategoryLabel, setNewSubcategoryLabel] = useState('')
+  const [creatingSubcategory, setCreatingSubcategory] = useState(false)
+
   const [selectedTransactionIds, setSelectedTransactionIds] = useState([])
   const [isBulkEditMode, setIsBulkEditMode] = useState(false)
 
@@ -109,6 +121,16 @@ function TransactionsPage() {
     acc[item.key] = item.color
     return acc
   }, {})
+
+  const categoryLabelMap = categorySchema.reduce((acc, item) => {
+    acc[item.key] = item.label
+    return acc
+  }, {})
+
+  const getCategoryDisplayLabel = (categoryKey) => {
+    if (!categoryKey) return ''
+    return categoryLabelMap[categoryKey] || formatCategoryLabel(categoryKey)
+  }
 
   const getCategoryColor = (category) => {
     if (!category) return '#71717a'
@@ -157,42 +179,136 @@ function TransactionsPage() {
   }, [])
 
 
+  async function reloadCategorySchema() {
+    const response = await fetch('http://127.0.0.1:8000/api/categories/schema')
+
+    if (!response.ok) {
+      throw new Error('Erro ao atualizar categorias')
+    }
+
+    const data = await response.json()
+    const categories = data.categories || []
+
+    setCategorySchema(categories)
+
+    const nextSubcategoryMap = categories.reduce((acc, item) => {
+      acc[item.key] = (item.subcategories || []).map((s) => s.key)
+      return acc
+    }, {})
+
+    setSubcategoryMap(
+      Object.keys(nextSubcategoryMap).length
+        ? nextSubcategoryMap
+        : FALLBACK_SUBCATEGORY_MAP
+    )
+  }
+
+  async function handleCreateCategory() {
+    if (!newCategoryLabel.trim()) {
+      setFormError('Informe um nome para a categoria')
+      return
+    }
+
+    try {
+      setCreatingCategory(true)
+      setFormError('')
+
+      const response = await fetch('http://127.0.0.1:8000/api/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          label: newCategoryLabel,
+          color: newCategoryColor,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Erro ao criar categoria')
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.message || 'Erro ao criar categoria')
+      }
+
+      await reloadCategorySchema()
+
+      setMainCategory(data.key)
+      setSubcategory('')
+      setNewCategoryLabel('')
+      setNewCategoryColor('#a78bfa')
+      setShowCreateCategory(false)
+      setShowCreateSubcategory(true)
+      setFormError(err.message || 'Erro ao criar categoria')
+    } finally {
+      setCreatingCategory(false)
+    }
+  }
+
+  async function handleCreateSubcategory() {
+    if (!mainCategory) {
+      setFormError('Selecione primeiro uma categoria principal')
+      return
+    }
+
+    if (!newSubcategoryLabel.trim()) {
+      setFormError('Informe um nome para a subcategoria')
+      return
+    }
+
+    try {
+      setCreatingSubcategory(true)
+      setFormError('')
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/categories/${mainCategory}/subcategories`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            label: newSubcategoryLabel,
+          }),
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Erro ao criar subcategoria')
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.message || 'Erro ao criar subcategoria')
+      }
+
+      await reloadCategorySchema()
+
+      setSubcategory(data.key)
+      setNewSubcategoryLabel('')
+      setShowCreateSubcategory(false)
+    } catch (err) {
+      setFormError(err.message || 'Erro ao criar subcategoria')
+    } finally {
+      setCreatingSubcategory(false)
+    }
+  }
 
   useEffect(() => {
-    async function fetchCategorySchema() {
+    async function loadSchema() {
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/categories/schema')
-
-        if (!response.ok) {
-          throw new Error('Erro ao buscar schema de categorias')
-        }
-
-        const data = await response.json()
-        const categories = data.categories || []
-
-        setCategorySchema(categories)
-
-        const nextSubcategoryMap = categories.reduce((accumulator, item) => {
-          accumulator[item.key] = (item.subcategories || []).map(
-            (subcategory) => subcategory.key
-          )
-          return accumulator
-        }, {})
-
-
-        setSubcategoryMap(
-          Object.keys(nextSubcategoryMap).length
-            ? nextSubcategoryMap
-            : FALLBACK_SUBCATEGORY_MAP
-        )
+        await reloadCategorySchema()
       } catch (err) {
         console.error(err)
-
         setSubcategoryMap(FALLBACK_SUBCATEGORY_MAP)
       }
     }
 
-    fetchCategorySchema()
+    loadSchema()
   }, [])
 
   useEffect(() => {
@@ -302,9 +418,21 @@ function TransactionsPage() {
       return
     }
 
+    let interval = null
+
     try {
       setUploading(true)
       setError('')
+      setUploadProgress(8)
+
+      interval = setInterval(() => {
+        setUploadProgress((prev) => {
+          if (prev >= 92) return prev
+
+          const nextValue = prev + Math.random() * 18
+          return Math.min(nextValue, 92)
+        })
+      }, 220)
 
       const formData = new FormData()
 
@@ -321,6 +449,8 @@ function TransactionsPage() {
         throw new Error('Erro ao enviar arquivos')
       }
 
+      setUploadProgress(100)
+
       const data = await response.json()
       setUploadResults(data.results || [])
       setSelectedFiles([])
@@ -332,11 +462,18 @@ function TransactionsPage() {
         setMonths(monthsData.months || [])
       }
 
-      await fetchTransactions()
+      await fetchTransactions(false)
+
+      await new Promise((resolve) => setTimeout(resolve, 500))
     } catch (err) {
       setError(err.message || 'Erro ao enviar arquivos')
     } finally {
+      if (interval) {
+        clearInterval(interval)
+      }
+
       setUploading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -375,6 +512,15 @@ function TransactionsPage() {
     setSimilarPreviewCount(0)
     setLoadingSimilarPreview(false)
     setFormError('')
+
+    setShowCreateCategory(false)
+    setNewCategoryLabel('')
+    setNewCategoryColor('#a78bfa')
+    setCreatingCategory(false)
+
+    setShowCreateSubcategory(false)
+    setNewSubcategoryLabel('')
+    setCreatingSubcategory(false)
   }
 
   function openBulkEditModal() {
@@ -461,6 +607,19 @@ function TransactionsPage() {
       style: 'currency',
       currency: 'BRL',
     })
+  }
+
+  function formatFileSize(sizeInBytes) {
+    if (!sizeInBytes) return '0 KB'
+
+    const kb = sizeInBytes / 1024
+
+    if (kb < 1024) {
+      return `${kb.toFixed(1)} KB`
+    }
+
+    const mb = kb / 1024
+    return `${mb.toFixed(2)} MB`
   }
 
   function openEditModal(transaction) {
@@ -706,6 +865,18 @@ function TransactionsPage() {
     return Object.values(filters).filter((value) => value !== '').length
   }, [filters])
 
+  const selectedFilesSize = useMemo(() => {
+    return selectedFiles.reduce((totalSize, file) => totalSize + file.size, 0)
+  }, [selectedFiles])
+
+  const uploadSuccessCount = useMemo(() => {
+    return uploadResults.filter((result) => !result.error).length
+  }, [uploadResults])
+
+  const uploadErrorCount = useMemo(() => {
+    return uploadResults.filter((result) => Boolean(result.error)).length
+  }, [uploadResults])
+
   if (loading) return <PageLoader />
 
   if (error) {
@@ -775,6 +946,34 @@ function TransactionsPage() {
               </div>
             </div>
 
+            <div className="upload-overview-grid">
+              <div className="upload-overview-card">
+                <span className="upload-overview-label">Arquivos prontos</span>
+                <strong className="upload-overview-value">{selectedFiles.length}</strong>
+                <small className="upload-overview-helper">
+                  {selectedFiles.length
+                    ? formatFileSize(selectedFilesSize)
+                    : 'Nenhum arquivo selecionado'}
+                </small>
+              </div>
+
+              <div className="upload-overview-card">
+                <span className="upload-overview-label">Importações ok</span>
+                <strong className="upload-overview-value">{uploadSuccessCount}</strong>
+                <small className="upload-overview-helper">
+                  Arquivos processados sem erro
+                </small>
+              </div>
+
+              <div className="upload-overview-card">
+                <span className="upload-overview-label">Com erro</span>
+                <strong className="upload-overview-value">{uploadErrorCount}</strong>
+                <small className="upload-overview-helper">
+                  Arquivos que precisam revisão
+                </small>
+              </div>
+            </div>
+
             <div
               className={`upload-dropzone ${isDragging ? 'dragging' : ''}`}
               onDragOver={(e) => {
@@ -791,58 +990,100 @@ function TransactionsPage() {
                 handleSelectedFiles(e.dataTransfer.files)
               }}
             >
-              <p className="upload-title">
-                Arraste PDFs e CSVs aqui ou escolha no botão
-              </p>
+              <div className="upload-dropzone-inner">
+                <p className="upload-title">Arraste seus arquivos aqui</p>
 
-              <p className="upload-subtitle">
-                Você pode enviar vários arquivos de uma vez
-              </p>
+                <p className="upload-subtitle">
+                  PDFs e CSVs • múltiplos arquivos por vez • ideal para faturas e extratos
+                </p>
 
-              <div className="upload-actions">
-                <label className="filter-button upload-label">
-                  Escolher arquivos
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,.csv"
-                    className="hidden-file-input"
-                    onChange={(e) => handleSelectedFiles(e.target.files)}
-                  />
-                </label>
+                <div className="upload-status-line">
+                  {selectedFiles.length > 0 ? (
+                    <span>
+                      {selectedFiles.length} arquivo{selectedFiles.length > 1 ? 's' : ''} selecionado{selectedFiles.length > 1 ? 's' : ''} • {formatFileSize(selectedFilesSize)}
+                    </span>
+                  ) : (
+                    <span>Nenhum arquivo selecionado ainda</span>
+                  )}
+                </div>
 
-                <button
-                  className="filter-button"
-                  onClick={handleUploadFiles}
-                  disabled={uploading || !selectedFiles.length}
-                >
-                  {uploading ? 'Enviando...' : 'Enviar arquivos'}
-                </button>
+                <div className="upload-actions">
+                  <label className="filter-button upload-label">
+                    Escolher arquivos
+                    <input
+                      type="file"
+                      multiple
+                      accept=".pdf,.csv"
+                      className="hidden-file-input"
+                      onChange={(e) => handleSelectedFiles(e.target.files)}
+                    />
+                  </label>
 
-                <button
-                  className="secondary-button"
-                  onClick={handleResetDatabase}
-                  disabled={resetting}
-                >
-                  {resetting ? 'Limpando...' : 'Limpar base'}
-                </button>
+                  <button
+                    className="filter-button"
+                    onClick={handleUploadFiles}
+                    disabled={uploading || !selectedFiles.length}
+                  >
+                    {uploading ? 'Enviando arquivos...' : 'Iniciar importação'}
+                  </button>
+
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => setSelectedFiles([])}
+                    disabled={!selectedFiles.length || uploading}
+                  >
+                    Limpar seleção
+                  </button>
+
+                  <button
+                    className="secondary-button"
+                    onClick={handleResetDatabase}
+                    disabled={resetting}
+                  >
+                    {resetting ? 'Limpando base...' : 'Limpar base'}
+                  </button>
+
+
+
+                </div>
+
+                {uploading && (
+                  <div className="upload-progress">
+                    <div
+                      className="upload-progress-bar"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                )}
+
               </div>
             </div>
 
             {selectedFiles.length > 0 && (
               <div className="transactions-upload-block">
-                <h3 className="transactions-subtitle">
-                  Arquivos selecionados ({selectedFiles.length})
-                </h3>
+                <div className="upload-block-header">
+                  <h3 className="transactions-subtitle">
+                    Arquivos selecionados ({selectedFiles.length})
+                  </h3>
+                </div>
 
-                <div className="top-category-list">
+                <div className="upload-file-list">
                   {selectedFiles.map((file) => (
                     <div
                       key={`${file.name}-${file.size}`}
-                      className="top-category-item"
+                      className="upload-file-item"
                     >
-                      <span>{file.name}</span>
-                      <strong>{(file.size / 1024).toFixed(1)} KB</strong>
+                      <div className="upload-file-main">
+                        <span className="upload-file-name">{file.name}</span>
+                        <span className="upload-file-meta">
+                          {file.name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'CSV'}
+                        </span>
+                      </div>
+
+                      <strong className="upload-file-size">
+                        {formatFileSize(file.size)}
+                      </strong>
                     </div>
                   ))}
                 </div>
@@ -851,26 +1092,37 @@ function TransactionsPage() {
 
             {uploadResults.length > 0 && (
               <div className="transactions-upload-block">
-                <h3 className="transactions-subtitle">
-                  Resultado do upload
-                </h3>
+                <div className="upload-block-header">
+                  <h3 className="transactions-subtitle">Resultado da importação</h3>
+                </div>
 
-                <div className="top-category-list">
-                  {uploadResults.map((result, index) => (
-                    <div
-                      key={`${result.filename}-${index}`}
-                      className="top-category-item"
-                    >
-                      <span>{result.original_filename || result.filename}</span>
-                      <strong
-                        style={{ color: result.error ? '#ef4444' : '#22c55e' }}
+                <div className="upload-result-list">
+                  {uploadResults.map((result, index) => {
+                    const hasError = Boolean(result.error)
+
+                    return (
+                      <div
+                        key={`${result.filename}-${index}`}
+                        className={`upload-result-item ${hasError ? 'is-error' : 'is-success'}`}
                       >
-                        {result.error
-                          ? `Erro: ${result.error}`
-                          : `OK • inseridas: ${result.inserted_count ?? 0} • ignoradas: ${result.skipped_count ?? 0}`}
-                      </strong>
-                    </div>
-                  ))}
+                        <div className="upload-result-main">
+                          <span className="upload-result-name">
+                            {result.original_filename || result.filename}
+                          </span>
+
+                          <span className="upload-result-status">
+                            {hasError ? 'Erro na importação' : 'Importação concluída'}
+                          </span>
+                        </div>
+
+                        <strong className="upload-result-summary">
+                          {hasError
+                            ? result.error
+                            : `Inseridas: ${result.inserted_count ?? 0} • Ignoradas: ${result.skipped_count ?? 0}`}
+                        </strong>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -1001,6 +1253,7 @@ function TransactionsPage() {
                       </option>
                     ))}
                   </select>
+
                 </div>
 
                 {/* Subcategoria */}
@@ -1230,7 +1483,7 @@ function TransactionsPage() {
                           }}
                         >
                           <span>
-                            {formatCategoryLabel(transaction.main_category) || '-'}
+                            {getCategoryDisplayLabel(transaction.main_category) || '-'}
                           </span>
                           <span className="category-chevron">˅</span>
                         </button>
@@ -1327,19 +1580,28 @@ function TransactionsPage() {
                   {formError}
                 </div>
               )}
-              <p>
-                <strong>Descrição:</strong> {selectedTransaction.raw_description}
-              </p>
+              <div className="modal-meta-card">
+                <div className="modal-meta-row">
+                  <span className="modal-meta-label">Atual</span>
+                  <span className="modal-meta-value">
+                    {getCategoryDisplayLabel(selectedTransaction.main_category) || '-'}
+                  </span>
+                </div>
 
-              <p>
-                <strong>Categoria atual:</strong>{' '}
-                {formatCategoryLabel(selectedTransaction.main_category) || '-'}
-              </p>
+                <div className="modal-meta-row">
+                  <span className="modal-meta-label">Origem</span>
+                  <span className="modal-meta-value">
+                    {selectedTransaction.category_source === 'manual' ? 'Manual' : 'Automática'}
+                  </span>
+                </div>
 
-              <p>
-                <strong>Origem:</strong>{' '}
-                {selectedTransaction.category_source === 'manual' ? 'Manual' : 'Automática'}
-              </p>
+                <div className="modal-meta-description">
+                  <span className="modal-meta-label">Descrição</span>
+                  <span className="modal-meta-description-text">
+                    {selectedTransaction.raw_description}
+                  </span>
+                </div>
+              </div>
 
               <label className="modal-label">
                 Categoria principal
@@ -1352,6 +1614,10 @@ function TransactionsPage() {
                   const nextMainCategory = e.target.value
                   setMainCategory(nextMainCategory)
                   setSubcategory('')
+                  setShowCreateCategory(false)
+                  setShowCreateSubcategory(false)
+                  setNewCategoryLabel('')
+                  setNewSubcategoryLabel('')
                 }}
               >
                 <option value="">Selecione</option>
@@ -1362,6 +1628,62 @@ function TransactionsPage() {
                   </option>
                 ))}
               </select>
+
+              <button
+                type="button"
+                className="secondary-button modal-inline-toggle"
+                onClick={() => {
+                  setShowCreateCategory((prev) => {
+                    const nextValue = !prev
+
+                    if (nextValue) {
+                      setShowCreateSubcategory(false)
+                      setNewSubcategoryLabel('')
+                    }
+
+                    return nextValue
+                  })
+
+                  setFormError('')
+                }}
+              >
+                {showCreateCategory ? 'Fechar criação de categoria' : '+ Nova categoria'}
+              </button>
+
+              {showCreateCategory && (
+                <div className="modal-inline-section">
+                  <div className="create-inline-form">
+                    <input
+                      type="text"
+                      className="modal-input create-inline-input"
+                      placeholder="Nome da categoria"
+                      value={newCategoryLabel}
+                      onChange={(e) => setNewCategoryLabel(e.target.value)}
+                    />
+
+                    <input
+                      type="color"
+                      className="create-inline-color"
+                      value={newCategoryColor}
+                      onChange={(e) => setNewCategoryColor(e.target.value)}
+                      aria-label="Escolher cor da categoria"
+                    />
+
+                    <button
+                      type="button"
+                      className="inline-create-button"
+                      onClick={handleCreateCategory}
+                      disabled={creatingCategory}
+                    >
+                      {creatingCategory ? 'Criando...' : 'Criar categoria'}
+                    </button>
+                  </div>
+
+                  <p className="modal-inline-helper">
+                    Cria a categoria e já deixa ela selecionada.
+                  </p>
+                </div>
+              )}
 
               <label className="modal-label">
                 Subcategoria
@@ -1381,6 +1703,55 @@ function TransactionsPage() {
                   </option>
                 ))}
               </select>
+
+              <button
+                type="button"
+                className="secondary-button modal-inline-toggle"
+                onClick={() => {
+                  setShowCreateSubcategory((prev) => {
+                    const nextValue = !prev
+
+                    if (nextValue) {
+                      setShowCreateCategory(false)
+                      setNewCategoryLabel('')
+                    }
+
+                    return nextValue
+                  })
+
+                  setFormError('')
+                }}
+                disabled={!mainCategory}
+              >
+                {showCreateSubcategory ? 'Fechar criação de subcategoria' : '+ Nova subcategoria'}
+              </button>
+
+              {showCreateSubcategory && (
+                <div className="modal-inline-section">
+                  <div className="create-inline-form no-color">
+                    <input
+                      type="text"
+                      className="modal-input create-inline-input"
+                      placeholder="Nome da subcategoria"
+                      value={newSubcategoryLabel}
+                      onChange={(e) => setNewSubcategoryLabel(e.target.value)}
+                    />
+
+                    <button
+                      type="button"
+                      className="inline-create-button"
+                      onClick={handleCreateSubcategory}
+                      disabled={creatingSubcategory}
+                    >
+                      {creatingSubcategory ? 'Criando...' : 'Criar subcategoria'}
+                    </button>
+                  </div>
+
+                  <p className="modal-inline-helper">
+                    Ela será criada dentro de {categorySchema.find((item) => item.key === mainCategory)?.label || 'esta categoria'}.
+                  </p>
+                </div>
+              )}
 
               <label className="modal-label">
                 Observação

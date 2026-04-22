@@ -1,5 +1,23 @@
+import re
+import unicodedata
+from sqlite3 import IntegrityError
+
+from app.database import get_connection
 from app.services.transaction_normalizer import normalize_description
 
+def slugify_key(value: str) -> str:
+    cleaned = " ".join((value or "").strip().split())
+
+    if not cleaned:
+        return ""
+
+    normalized = unicodedata.normalize("NFKD", cleaned)
+    normalized = normalized.encode("ascii", "ignore").decode("utf-8")
+    normalized = normalized.lower()
+    normalized = re.sub(r"[^a-z0-9]+", "_", normalized)
+    normalized = re.sub(r"_+", "_", normalized).strip("_")
+
+    return normalized
 
 CATEGORY_SCHEMA = {
     "movimentacoes": {
@@ -101,23 +119,335 @@ CATEGORY_SCHEMA = {
 }
 
 
-def get_category_schema() -> dict:
-    ordered_categories = []
+def seed_categories_if_needed() -> None:
+    with get_connection() as connection:
+        cursor = connection.cursor()
 
-    for key, value in CATEGORY_SCHEMA.items():
-        ordered_categories.append(
-            {
-                "key": key,
-                "label": value["label"],
-                "color": value["color"],
-                "subcategories": [
-                    {"key": sub_key, "label": sub_label}
-                    for sub_key, sub_label in value["subcategories"].items()
-                ],
-            }
+        cursor.execute("SELECT COUNT(*) AS total FROM categories")
+        row = cursor.fetchone()
+        total = row["total"] if row else 0
+
+        if total > 0:
+            return
+
+        for category_key, category_data in CATEGORY_SCHEMA.items():
+            cursor.execute(
+                """
+                INSERT INTO categories (key, label, color, is_system)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    category_key,
+                    category_data["label"],
+                    category_data["color"],
+                    1,
+                ),
+            )
+
+            category_id = cursor.lastrowid
+
+            for subcategory_key, subcategory_label in category_data["subcategories"].items():
+                cursor.execute(
+                    """
+                    INSERT INTO subcategories (category_id, key, label)
+                    VALUES (?, ?, ?)
+                    """,
+                    (
+                        category_id,
+                        subcategory_key,
+                        subcategory_label,
+                    ),
+                )
+
+        connection.commit()
+
+
+def get_category_schema() -> dict:
+    seed_categories_if_needed()
+
+    with get_connection() as connection:
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                key,
+                label,
+                color
+            FROM categories
+            ORDER BY is_system DESC, label COLLATE NOCASE ASC
+            """
         )
+        category_rows = cursor.fetchall()
+
+        ordered_categories = []
+
+        for category_row in category_rows:
+            category_id = category_row["id"]
+
+            cursor.execute(
+                """
+                SELECT
+                    key,
+                    label
+                FROM subcategories
+                WHERE category_id = ?
+                ORDER BY label COLLATE NOCASE ASC
+                """,
+                (category_id,),
+            )
+            subcategory_rows = cursor.fetchall()
+
+            ordered_categories.append(
+                {
+                    "key": category_row["key"],
+                    "label": category_row["label"],
+                    "color": category_row["color"],
+                    "subcategories": [
+                        {
+                            "key": subcategory_row["key"],
+                            "label": subcategory_row["label"],
+                        }
+                        for subcategory_row in subcategory_rows
+                    ],
+                }
+            )
 
     return {"categories": ordered_categories}
+
+
+def is_valid_category_selection(
+    main_category: str | None,
+    subcategory: str | None,
+) -> bool:
+    normalized_main_category = (main_category or "").strip().lower()
+    normalized_subcategory = (subcategory or "").strip().lower()
+
+    if not normalized_main_category or not normalized_subcategory:
+        return False
+
+    with get_connection() as connection:
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT 1
+            FROM categories c
+            INNER JOIN subcategories s ON s.category_id = c.id
+            WHERE c.key = ?
+              AND s.key = ?
+            LIMIT 1
+            """,
+            (normalized_main_category, normalized_subcategory),
+        )
+
+        row = cursor.fetchone()
+
+    return row is not None
+
+
+def create_category(label: str, color: str | None = None) -> dict:
+    seed_categories_if_needed()
+
+    normalized_label = " ".join((label or "").strip().split())
+    generated_key = slugify_key(normalized_label)
+
+    if not normalized_label:
+        return {
+            "success": False,
+            "message": "Label da categoria é obrigatório",
+        }
+
+    if not generated_key:
+        return {
+            "success": False,
+            "message": "Não foi possível gerar uma key válida para a categoria",
+        }
+
+    final_color = (color or "").strip() or "#a78bfa"
+
+    try:
+        with get_connection() as connection:
+            cursor = connection.cursor()
+
+            cursor.execute(
+                """
+                INSERT INTO categories (key, label, color, is_system)
+                VALUES (?, ?, ?, ?)
+                """,
+                (generated_key, normalized_label, final_color, 0),
+            )
+            connection.commit()
+
+        return {
+            "success": True,
+            "message": "Categoria criada com sucesso",
+            "key": generated_key,
+            "label": normalized_label,
+            "color": final_color,
+        }
+    except IntegrityError:
+        return {
+            "success": False,
+            "message": "Já existe uma categoria com esse nome/chave",
+        }
+
+
+def update_category(category_key: str, label: str, color: str | None = None) -> dict:
+    normalized_label = " ".join((label or "").strip().split())
+
+    if not normalized_label:
+        return {
+            "success": False,
+            "message": "Label da categoria é obrigatório",
+        }
+
+    with get_connection() as connection:
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT id, key, color
+            FROM categories
+            WHERE key = ?
+            """,
+            (category_key,),
+        )
+        existing_category = cursor.fetchone()
+
+        if not existing_category:
+            return {
+                "success": False,
+                "message": "Categoria não encontrada",
+            }
+
+        final_color = (color or "").strip() or existing_category["color"]
+
+        cursor.execute(
+            """
+            UPDATE categories
+            SET label = ?, color = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE key = ?
+            """,
+            (normalized_label, final_color, category_key),
+        )
+        connection.commit()
+
+    return {
+        "success": True,
+        "message": "Categoria atualizada com sucesso",
+        "key": category_key,
+        "label": normalized_label,
+        "color": final_color,
+    }
+
+
+def create_subcategory(category_key: str, label: str) -> dict:
+    normalized_label = " ".join((label or "").strip().split())
+    generated_key = slugify_key(normalized_label)
+
+    if not normalized_label:
+        return {
+            "success": False,
+            "message": "Label da subcategoria é obrigatório",
+        }
+
+    if not generated_key:
+        return {
+            "success": False,
+            "message": "Não foi possível gerar uma key válida para a subcategoria",
+        }
+
+    try:
+        with get_connection() as connection:
+            cursor = connection.cursor()
+
+            cursor.execute(
+                """
+                SELECT id
+                FROM categories
+                WHERE key = ?
+                """,
+                (category_key,),
+            )
+            category_row = cursor.fetchone()
+
+            if not category_row:
+                return {
+                    "success": False,
+                    "message": "Categoria não encontrada",
+                }
+
+            cursor.execute(
+                """
+                INSERT INTO subcategories (category_id, key, label)
+                VALUES (?, ?, ?)
+                """,
+                (category_row["id"], generated_key, normalized_label),
+            )
+            connection.commit()
+
+        return {
+            "success": True,
+            "message": "Subcategoria criada com sucesso",
+            "category_key": category_key,
+            "key": generated_key,
+            "label": normalized_label,
+        }
+    except IntegrityError:
+        return {
+            "success": False,
+            "message": "Já existe uma subcategoria com esse nome/chave nessa categoria",
+        }
+
+
+def update_subcategory(category_key: str, subcategory_key: str, label: str) -> dict:
+    normalized_label = " ".join((label or "").strip().split())
+
+    if not normalized_label:
+        return {
+            "success": False,
+            "message": "Label da subcategoria é obrigatório",
+        }
+
+    with get_connection() as connection:
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT s.id
+            FROM subcategories s
+            INNER JOIN categories c ON c.id = s.category_id
+            WHERE c.key = ? AND s.key = ?
+            """,
+            (category_key, subcategory_key),
+        )
+        subcategory_row = cursor.fetchone()
+
+        if not subcategory_row:
+            return {
+                "success": False,
+                "message": "Subcategoria não encontrada",
+            }
+
+        cursor.execute(
+            """
+            UPDATE subcategories
+            SET label = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (normalized_label, subcategory_row["id"]),
+        )
+        connection.commit()
+
+    return {
+        "success": True,
+        "message": "Subcategoria atualizada com sucesso",
+        "category_key": category_key,
+        "key": subcategory_key,
+        "label": normalized_label,
+    }
 
 
 CATEGORY_RULES = {

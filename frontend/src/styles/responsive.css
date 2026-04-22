@@ -98,3 +98,34 @@
     max-width: 100%;
   }
 }
+
+@media (max-width: 980px) {
+  .upload-actions {
+    grid-template-columns: repeat(2, minmax(0, 190px));
+  }
+}
+
+@media (max-width: 640px) {
+  .upload-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-actions .filter-button,
+  .upload-actions .secondary-button,
+  .upload-actions .upload-label {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .create-inline-form,
+  .create-inline-form.no-color {
+    grid-template-columns: 1fr;
+  }
+
+  .create-inline-color,
+  .inline-create-button {
+    width: 100%;
+  }
+}

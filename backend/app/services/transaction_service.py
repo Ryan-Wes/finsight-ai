@@ -1,7 +1,10 @@
 import re
 import unicodedata
 from sqlite3 import IntegrityError
-from app.services.category_service import map_to_main_and_subcategory
+from app.services.category_service import (
+    is_valid_category_selection,
+    map_to_main_and_subcategory,
+)
 from app.database import get_connection
 
 
@@ -414,6 +417,37 @@ def update_transaction_category(
             for value in [category, main_category, subcategory]
         )
 
+        normalized_main_category = (
+            str(main_category).strip().lower()
+            if main_category is not None
+            else None
+        )
+        normalized_subcategory = (
+            str(subcategory).strip().lower()
+            if subcategory is not None
+            else None
+        )
+
+        if main_category is not None:
+            main_category = normalized_main_category
+
+        if subcategory is not None:
+            subcategory = normalized_subcategory
+
+        if main_category is not None or subcategory is not None:
+            if not main_category or not subcategory:
+                return {
+                    "success": False,
+                    "message": "Categoria principal e subcategoria devem ser enviadas juntas",
+                }
+
+            if not is_valid_category_selection(main_category, subcategory):
+                return {
+                    "success": False,
+                    "message": "Combinação de categoria e subcategoria inválida",
+                }
+
+
         if normalized_category:
             fields.append("category = ?")
             values.append(normalized_category)
@@ -578,6 +612,38 @@ def bulk_update_transaction_category(
         }
 
     normalized_category = normalize_category_name(category) if category else None
+
+    normalized_main_category = (
+        str(main_category).strip().lower()
+        if main_category is not None
+        else None
+    )
+    normalized_subcategory = (
+        str(subcategory).strip().lower()
+        if subcategory is not None
+        else None
+    )
+
+    if main_category is not None:
+        main_category = normalized_main_category
+
+    if subcategory is not None:
+        subcategory = normalized_subcategory
+
+    if main_category is not None or subcategory is not None:
+        if not main_category or not subcategory:
+            return {
+                "success": False,
+                "updated_count": 0,
+                "message": "Categoria principal e subcategoria devem ser enviadas juntas",
+            }
+
+        if not is_valid_category_selection(main_category, subcategory):
+            return {
+                "success": False,
+                "updated_count": 0,
+                "message": "Combinação de categoria e subcategoria inválida",
+            }
 
     with get_connection() as connection:
         cursor = connection.cursor()
