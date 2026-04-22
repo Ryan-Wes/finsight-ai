@@ -128,4 +128,13 @@
   .inline-create-button {
     width: 100%;
   }
+
+    .ai-suggestion-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-apply-button {
+    width: 100%;
+  }
 }
+

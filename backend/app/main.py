@@ -1,3 +1,12 @@
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+ENV_PATH = BASE_DIR / ".env"
+
+load_dotenv(dotenv_path=str(ENV_PATH))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -9,6 +18,8 @@ from app.routes.transactions import router as transactions_router
 from app.routes.summary import router as summary_router
 from app.routes.dev import router as dev_router
 from app.routes.categories import router as categories_router
+
+from app.routes import ai
 
 
 app = FastAPI(title="FinSight AI API")
@@ -42,3 +53,4 @@ app.include_router(transactions_router, prefix="/api")
 app.include_router(summary_router, prefix="/api")
 app.include_router(dev_router, prefix="/api")
 app.include_router(categories_router, prefix="/api")
+app.include_router(ai.router, prefix="/api")

@@ -97,6 +97,10 @@ function TransactionsPage() {
   const [similarPreviewCount, setSimilarPreviewCount] = useState(0)
   const [loadingSimilarPreview, setLoadingSimilarPreview] = useState(false)
 
+  const [aiSuggestion, setAiSuggestion] = useState(null)
+  const [loadingAiSuggestion, setLoadingAiSuggestion] = useState(false)
+  const [aiSuggestionError, setAiSuggestionError] = useState('')
+
   const [categorySchema, setCategorySchema] = useState([])
   const [subcategoryMap, setSubcategoryMap] = useState(FALLBACK_SUBCATEGORY_MAP)
 
@@ -521,6 +525,10 @@ function TransactionsPage() {
     setShowCreateSubcategory(false)
     setNewSubcategoryLabel('')
     setCreatingSubcategory(false)
+
+    setAiSuggestion(null)
+    setLoadingAiSuggestion(false)
+    setAiSuggestionError('')
   }
 
   function openBulkEditModal() {
@@ -634,6 +642,10 @@ function TransactionsPage() {
     setSubcategory(transaction.subcategory || '')
     setApplyToSimilar(false)
     setIsBulkEditMode(false)
+
+    setAiSuggestion(null)
+    setAiSuggestionError('')
+    fetchAiSuggestion(transaction.raw_description)
   }
 
   function closeEditModal() {
@@ -665,6 +677,49 @@ function TransactionsPage() {
       setSimilarPreviewCount(0)
     } finally {
       setLoadingSimilarPreview(false)
+    }
+  }
+
+  async function fetchAiSuggestion(description) {
+    if (!description) {
+      setAiSuggestion(null)
+      return
+    }
+
+    try {
+      setLoadingAiSuggestion(true)
+      setAiSuggestionError('')
+      setAiSuggestion(null)
+
+      const response = await fetch(
+        'http://127.0.0.1:8000/api/ai/suggest-category',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            description,
+          }),
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Erro ao buscar sugestão da IA')
+      }
+
+      const data = await response.json()
+
+      if (!data.success || !data.result) {
+        throw new Error(data.message || 'Sugestão da IA indisponível')
+      }
+
+      setAiSuggestion(data.result)
+    } catch (err) {
+      setAiSuggestion(null)
+      setAiSuggestionError(err.message || 'Erro ao buscar sugestão da IA')
+    } finally {
+      setLoadingAiSuggestion(false)
     }
   }
 
@@ -720,6 +775,17 @@ function TransactionsPage() {
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [isAnyEditModalOpen, isBulkEditMode, selectedTransaction, mainCategory, subcategory, userNote])
+
+
+  function applyAiSuggestion() {
+    if (!aiSuggestion) {
+      return
+    }
+
+    setMainCategory(aiSuggestion.category_key || '')
+    setSubcategory(aiSuggestion.subcategory_key || '')
+    setFormError('')
+  }
 
   async function saveCategory() {
     if (!selectedTransaction) {
@@ -1580,6 +1646,9 @@ function TransactionsPage() {
                   {formError}
                 </div>
               )}
+
+              
+
               <div className="modal-meta-card">
                 <div className="modal-meta-row">
                   <span className="modal-meta-label">Atual</span>
@@ -1587,6 +1656,8 @@ function TransactionsPage() {
                     {getCategoryDisplayLabel(selectedTransaction.main_category) || '-'}
                   </span>
                 </div>
+
+                
 
                 <div className="modal-meta-row">
                   <span className="modal-meta-label">Origem</span>
@@ -1603,52 +1674,114 @@ function TransactionsPage() {
                 </div>
               </div>
 
+              <div className="ai-suggestion-card">
+                <div className="ai-suggestion-header">
+                  <strong>🤖 Sugestão da IA</strong>
+
+                  
+                </div>
+
+                {loadingAiSuggestion && (
+                  <p className="ai-suggestion-status">Analisando transação...</p>
+                )}
+
+                {!loadingAiSuggestion && aiSuggestionError && (
+                  <p className="ai-suggestion-status ai-suggestion-status-error">
+                    {aiSuggestionError}
+                  </p>
+                )}
+
+                {!loadingAiSuggestion && aiSuggestion && (
+                  <>
+                    <div className="ai-suggestion-grid">
+                      <div className="ai-suggestion-item">
+                        <span className="ai-suggestion-label">Categoria</span>
+                        <span className="ai-suggestion-value">
+                          {getCategoryDisplayLabel(aiSuggestion.category_key)}
+                        </span>
+                      </div>
+
+                      <div className="ai-suggestion-item">
+                        <span className="ai-suggestion-label">Subcategoria</span>
+                        <span className="ai-suggestion-value">
+                          {formatCategoryLabel(aiSuggestion.subcategory_key)}
+                        </span>
+                      </div>
+
+                      <div className="ai-suggestion-item">
+                        <span className="ai-suggestion-label">Confiança</span>
+                        <span className="ai-suggestion-value">
+                          {aiSuggestion.confidence}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="ai-suggestion-reason">
+                      <span className="ai-suggestion-label">Motivo</span>
+                      <span title={aiSuggestion.reason}>{aiSuggestion.reason}</span>
+                    </p>
+                    {!loadingAiSuggestion && aiSuggestion && (
+                    <button
+                      type="button"
+                      className="inline-create-button ai-apply-button"
+                      onClick={applyAiSuggestion}
+                    >
+                      Aplicar sugestão
+                    </button>
+                  )}
+                  </>
+                  
+                )}
+              </div>
+
               <label className="modal-label">
                 Categoria principal
               </label>
 
-              <select
-                className="modal-select"
-                value={mainCategory}
-                onChange={(e) => {
-                  const nextMainCategory = e.target.value
-                  setMainCategory(nextMainCategory)
-                  setSubcategory('')
-                  setShowCreateCategory(false)
-                  setShowCreateSubcategory(false)
-                  setNewCategoryLabel('')
-                  setNewSubcategoryLabel('')
-                }}
-              >
-                <option value="">Selecione</option>
+              <div className="modal-select-row">
+                <select
+                  className="modal-select"
+                  value={mainCategory}
+                  onChange={(e) => {
+                    const nextMainCategory = e.target.value
+                    setMainCategory(nextMainCategory)
+                    setSubcategory('')
+                    setShowCreateCategory(false)
+                    setShowCreateSubcategory(false)
+                    setNewCategoryLabel('')
+                    setNewSubcategoryLabel('')
+                  }}
+                >
+                  <option value="">Selecione</option>
 
-                {categorySchema.map((category) => (
-                  <option key={category.key} value={category.key}>
-                    {category.label}
-                  </option>
-                ))}
-              </select>
+                  {categorySchema.map((category) => (
+                    <option key={category.key} value={category.key}>
+                      {category.label}
+                    </option>
+                  ))}
+                </select>
 
-              <button
-                type="button"
-                className="secondary-button modal-inline-toggle"
-                onClick={() => {
-                  setShowCreateCategory((prev) => {
-                    const nextValue = !prev
+                <button
+                  type="button"
+                  className="secondary-button modal-inline-side-button"
+                  onClick={() => {
+                    setShowCreateCategory((prev) => {
+                      const nextValue = !prev
 
-                    if (nextValue) {
-                      setShowCreateSubcategory(false)
-                      setNewSubcategoryLabel('')
-                    }
+                      if (nextValue) {
+                        setShowCreateSubcategory(false)
+                        setNewSubcategoryLabel('')
+                      }
 
-                    return nextValue
-                  })
+                      return nextValue
+                    })
 
-                  setFormError('')
-                }}
-              >
-                {showCreateCategory ? 'Fechar criação de categoria' : '+ Nova categoria'}
-              </button>
+                    setFormError('')
+                  }}
+                >
+                  {showCreateCategory ? 'X Fechar' : '+ Nova'}
+                </button>
+              </div>
 
               {showCreateCategory && (
                 <div className="modal-inline-section">
@@ -1679,9 +1812,6 @@ function TransactionsPage() {
                     </button>
                   </div>
 
-                  <p className="modal-inline-helper">
-                    Cria a categoria e já deixa ela selecionada.
-                  </p>
                 </div>
               )}
 
@@ -1689,42 +1819,44 @@ function TransactionsPage() {
                 Subcategoria
               </label>
 
-              <select
-                className="modal-select"
-                value={subcategory}
-                onChange={(e) => setSubcategory(e.target.value)}
-                disabled={!mainCategory}
-              >
-                <option value="">Selecione</option>
+              <div className="modal-select-row">
+                <select
+                  className="modal-select"
+                  value={subcategory}
+                  onChange={(e) => setSubcategory(e.target.value)}
+                  disabled={!mainCategory}
+                >
+                  <option value="">Selecione</option>
 
-                {(subcategoryMap[mainCategory] || []).map((sub) => (
-                  <option key={sub} value={sub}>
-                    {formatCategoryLabel(sub)}
-                  </option>
-                ))}
-              </select>
+                  {(subcategoryMap[mainCategory] || []).map((sub) => (
+                    <option key={sub} value={sub}>
+                      {formatCategoryLabel(sub)}
+                    </option>
+                  ))}
+                </select>
 
-              <button
-                type="button"
-                className="secondary-button modal-inline-toggle"
-                onClick={() => {
-                  setShowCreateSubcategory((prev) => {
-                    const nextValue = !prev
+                <button
+                  type="button"
+                  className="secondary-button modal-inline-side-button"
+                  onClick={() => {
+                    setShowCreateSubcategory((prev) => {
+                      const nextValue = !prev
 
-                    if (nextValue) {
-                      setShowCreateCategory(false)
-                      setNewCategoryLabel('')
-                    }
+                      if (nextValue) {
+                        setShowCreateCategory(false)
+                        setNewCategoryLabel('')
+                      }
 
-                    return nextValue
-                  })
+                      return nextValue
+                    })
 
-                  setFormError('')
-                }}
-                disabled={!mainCategory}
-              >
-                {showCreateSubcategory ? 'Fechar criação de subcategoria' : '+ Nova subcategoria'}
-              </button>
+                    setFormError('')
+                  }}
+                  disabled={!mainCategory}
+                >
+                  {showCreateSubcategory ? 'X Fechar' : '+ Nova'}
+                </button>
+              </div>
 
               {showCreateSubcategory && (
                 <div className="modal-inline-section">
@@ -1746,10 +1878,6 @@ function TransactionsPage() {
                       {creatingSubcategory ? 'Criando...' : 'Criar subcategoria'}
                     </button>
                   </div>
-
-                  <p className="modal-inline-helper">
-                    Ela será criada dentro de {categorySchema.find((item) => item.key === mainCategory)?.label || 'esta categoria'}.
-                  </p>
                 </div>
               )}
 
