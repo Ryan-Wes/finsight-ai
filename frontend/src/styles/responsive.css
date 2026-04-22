@@ -138,3 +138,13 @@
   }
 }
 
+@media (max-width: 768px) {
+  .manual-transaction-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-field-full {
+    grid-column: auto;
+  }
+}
+

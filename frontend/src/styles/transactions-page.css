@@ -1495,3 +1495,126 @@ padding-left: 22px;
   font-weight: 700;
   white-space: nowrap;
 }
+
+.manual-transaction-modal {
+  width: min(760px, calc(100vw - 32px));
+}
+
+.manual-transaction-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field-full {
+  grid-column: 1 / -1;
+}
+
+.form-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #c4b5fd;
+}
+
+.form-field input,
+.form-field select {
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(167, 139, 250, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.006)),
+    #171425;
+  color: #f4f4f5;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  outline: none;
+  border-color: rgba(192, 132, 252, 0.65);
+  box-shadow:
+    0 0 0 3px rgba(139, 92, 246, 0.18),
+    0 10px 24px rgba(76, 29, 149, 0.16);
+}
+
+.form-error-message {
+  margin-top: 16px;
+  color: #fda4af;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* overlay escuro correto */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* container do modal */
+.category-modal {
+  width: min(760px, calc(100vw - 32px));
+  max-height: 90vh;
+  overflow-y: auto;
+
+  border-radius: 20px;
+
+  background:
+    radial-gradient(circle at top right, rgba(139, 92, 246, 0.12), transparent 30%),
+    #1a1220;
+
+  border: 1px solid rgba(167, 139, 250, 0.2);
+
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+
+  padding: 20px;
+}
+
+/* header */
+.category-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.category-modal-header h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.category-modal-header p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #a1a1aa;
+}
+
+/* body */
+.category-modal-body {
+  margin-bottom: 20px;
+}
+
+/* footer */
+.category-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

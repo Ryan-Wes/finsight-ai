@@ -723,8 +723,8 @@ def create_manual_transaction(data: dict) -> dict:
         transaction_type = data.get("transaction_type")
         main_category = data.get("main_category")
         subcategory = data.get("subcategory")
-        source_name = data.get("source_name", "manual")
-        source_type = data.get("source_type", "manual")
+        source_name = (data.get("source_name") or "").strip().lower()
+        source_type = (data.get("source_type") or "").strip().lower()
 
         # validações básicas
         if not transaction_date or not description or amount is None:
@@ -732,6 +732,12 @@ def create_manual_transaction(data: dict) -> dict:
 
         if direction not in {"in", "out"}:
             return {"success": False, "message": "Direction inválido"}
+
+        if source_type not in {"bank_account", "credit_card"}:
+            return {"success": False, "message": "Origem financeira inválida"}
+
+        if not source_name:
+            return {"success": False, "message": "Informe a fonte da transação"}
 
         if not main_category or not subcategory:
             return {"success": False, "message": "Categoria incompleta"}
@@ -782,7 +788,7 @@ def create_manual_transaction(data: dict) -> dict:
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    0,  # manual não tem import
+                    0,  # import_id
                     transaction_date,
                     competency_month,
                     description,
@@ -794,16 +800,16 @@ def create_manual_transaction(data: dict) -> dict:
                     main_category,
                     subcategory,
                     description,
-                    "manual",
-                    1,
+                    "manual",  # category_source
+                    1,         # category_reviewed
                     source_name,
                     source_type,
-                    "manual",
-                    0,
-                    0,
+                    "manual",  # file_format
+                    0,         # is_ignored_in_spending
+                    0,         # is_internal_transfer
                     transaction_hash,
-                    "manual",
-                ),
+                    "manual",  # entry_mode
+                )
             )
 
             connection.commit()

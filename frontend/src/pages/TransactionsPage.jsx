@@ -118,8 +118,24 @@ function TransactionsPage() {
   const [selectedTransactionIds, setSelectedTransactionIds] = useState([])
   const [isBulkEditMode, setIsBulkEditMode] = useState(false)
 
+  const [isCreateManualModalOpen, setIsCreateManualModalOpen] = useState(false)
+  const [creatingManualTransaction, setCreatingManualTransaction] = useState(false)
+
+  const [manualTransactionForm, setManualTransactionForm] = useState({
+    transaction_date: '',
+    description: '',
+    amount: '',
+    direction: 'out',
+    transaction_type: 'purchase',
+    main_category: '',
+    subcategory: '',
+    source_name: '',
+    source_type: 'bank_account',
+  })
+
   const isSingleEditMode = Boolean(selectedTransaction)
-  const isAnyEditModalOpen = isSingleEditMode || isBulkEditMode
+  const isAnyEditModalOpen =
+    isSingleEditMode || isBulkEditMode || isCreateManualModalOpen
 
   const schemaColorMap = categorySchema.reduce((acc, item) => {
     acc[item.key] = item.color
@@ -654,6 +670,147 @@ function TransactionsPage() {
     resetEditForm()
   }
 
+  function resetManualTransactionForm() {
+    setManualTransactionForm({
+      transaction_date: '',
+      description: '',
+      amount: '',
+      direction: 'out',
+      transaction_type: 'purchase',
+      main_category: '',
+      subcategory: '',
+      source_name: '',
+      source_type: 'bank_account',
+    })
+  }
+
+  function openCreateManualModal() {
+    setSelectedTransaction(null)
+    setIsBulkEditMode(false)
+    setSuccessMessage('')
+    setFormError('')
+    resetEditForm()
+    resetManualTransactionForm()
+    setIsCreateManualModalOpen(true)
+  }
+
+  function closeCreateManualModal() {
+    setIsCreateManualModalOpen(false)
+    setFormError('')
+    resetManualTransactionForm()
+  }
+
+  function handleManualTransactionChange(field, value) {
+    setManualTransactionForm((prev) => {
+      const next = {
+        ...prev,
+        [field]: value,
+      }
+
+      if (field === 'main_category') {
+        next.subcategory = ''
+      }
+
+      return next
+    })
+  }
+
+  async function saveManualTransaction() {
+    const {
+      transaction_date,
+      description,
+      amount,
+      direction,
+      transaction_type,
+      main_category,
+      subcategory,
+      source_name,
+      source_type,
+    } = manualTransactionForm
+
+    if (!transaction_date || !description.trim() || amount === '') {
+      setFormError('Preencha data, descrição e valor.')
+      return
+    }
+
+    if (!source_name.trim()) {
+      setFormError('Informe a instituição / fonte da transação.')
+      return
+    }
+
+    if (!main_category || !subcategory) {
+      setFormError('Selecione categoria e subcategoria.')
+      return
+    }
+
+    try {
+      setCreatingManualTransaction(true)
+      setFormError('')
+      setError('')
+
+      const numericAmount = Number(amount)
+
+      if (Number.isNaN(numericAmount) || numericAmount === 0) {
+        setFormError('Informe um valor válido.')
+        return
+      }
+
+      const finalAmount =
+        direction === 'out' ? -Math.abs(numericAmount) : Math.abs(numericAmount)
+
+      const response = await fetch(
+        'http://127.0.0.1:8000/api/transactions/manual',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            transaction_date,
+            description: description.trim(),
+            amount: finalAmount,
+            direction,
+            transaction_type,
+            main_category,
+            subcategory,
+            source_name: source_name.trim().toLowerCase(),
+            source_type,
+          }),
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Erro ao criar transação manual')
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.message || 'Erro ao criar transação manual')
+      }
+
+      setSuccessMessage({
+        title: 'Transação criada',
+        description: 'A transação manual foi adicionada com sucesso.',
+        tone: 'success',
+      })
+
+      closeCreateManualModal()
+      await fetchTransactions(false)
+
+      const monthsResponse = await fetch('http://127.0.0.1:8000/api/transactions/months')
+
+      if (monthsResponse.ok) {
+        const monthsData = await monthsResponse.json()
+        setMonths(monthsData.months || [])
+      }
+    } catch (err) {
+      setFormError(err.message || 'Erro ao criar transação manual')
+    } finally {
+      setCreatingManualTransaction(false)
+    }
+  }
+
   async function fetchSimilarPreview(transactionId) {
     if (!transactionId) {
       setSimilarPreviewCount(0)
@@ -734,12 +891,23 @@ function TransactionsPage() {
 
       if (event.key === 'Escape') {
         event.preventDefault()
+
+        if (isCreateManualModalOpen) {
+          closeCreateManualModal()
+          return
+        }
+
         closeEditModal()
         return
       }
 
       if (event.key === 'Enter' && !isTextArea) {
         event.preventDefault()
+
+        if (isCreateManualModalOpen) {
+          saveManualTransaction()
+          return
+        }
 
         if (isBulkEditMode) {
           saveBulkCategory()
@@ -757,6 +925,11 @@ function TransactionsPage() {
 
       if (event.key === 'Enter' && isSelect) {
         event.preventDefault()
+
+        if (isCreateManualModalOpen) {
+          saveManualTransaction()
+          return
+        }
 
         if (isBulkEditMode) {
           saveBulkCategory()
@@ -976,6 +1149,14 @@ function TransactionsPage() {
 
         <section className="transactions-toolbar-card">
           <div className="transactions-toolbar-center">
+            <button
+              type="button"
+              className="toolbar-pill-button is-active"
+              onClick={openCreateManualModal}
+            >
+              Nova transação
+            </button>
+
             <button
               type="button"
               className={`toolbar-pill-button ${showUpload ? 'is-active' : ''}`}
@@ -1647,7 +1828,7 @@ function TransactionsPage() {
                 </div>
               )}
 
-              
+
 
               <div className="modal-meta-card">
                 <div className="modal-meta-row">
@@ -1657,7 +1838,7 @@ function TransactionsPage() {
                   </span>
                 </div>
 
-                
+
 
                 <div className="modal-meta-row">
                   <span className="modal-meta-label">Origem</span>
@@ -1678,7 +1859,7 @@ function TransactionsPage() {
                 <div className="ai-suggestion-header">
                   <strong>🤖 Sugestão da IA</strong>
 
-                  
+
                 </div>
 
                 {loadingAiSuggestion && (
@@ -1721,16 +1902,16 @@ function TransactionsPage() {
                       <span title={aiSuggestion.reason}>{aiSuggestion.reason}</span>
                     </p>
                     {!loadingAiSuggestion && aiSuggestion && (
-                    <button
-                      type="button"
-                      className="inline-create-button ai-apply-button"
-                      onClick={applyAiSuggestion}
-                    >
-                      Aplicar sugestão
-                    </button>
-                  )}
+                      <button
+                        type="button"
+                        className="inline-create-button ai-apply-button"
+                        onClick={applyAiSuggestion}
+                      >
+                        Aplicar sugestão
+                      </button>
+                    )}
                   </>
-                  
+
                 )}
               </div>
 
@@ -2021,6 +2202,186 @@ function TransactionsPage() {
 
               <button className="secondary-button" onClick={closeBulkEditModal}>
                 Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isCreateManualModalOpen && (
+        <div className="modal-overlay" onClick={closeCreateManualModal}>
+          <div
+            className="category-modal manual-transaction-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="category-modal-header">
+              <div>
+                <h2>Nova transação manual</h2>
+                <p>Adicione uma transação no mesmo padrão das importadas</p>
+              </div>
+
+              <button
+                type="button"
+                className="modal-close-button"
+                onClick={closeCreateManualModal}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="category-modal-body">
+              <div className="manual-transaction-form-grid">
+                <div className="form-field">
+                  <label>Data</label>
+                  <input
+                    type="date"
+                    value={manualTransactionForm.transaction_date}
+                    onChange={(e) =>
+                      handleManualTransactionChange('transaction_date', e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label>Valor</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0,00"
+                    value={manualTransactionForm.amount}
+                    onChange={(e) =>
+                      handleManualTransactionChange('amount', e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="form-field form-field-full">
+                  <label>Descrição</label>
+                  <input
+                    type="text"
+                    placeholder="Ex.: Mercado, salário, pix recebido..."
+                    value={manualTransactionForm.description}
+                    onChange={(e) =>
+                      handleManualTransactionChange('description', e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label>Direção</label>
+                  <select
+                    value={manualTransactionForm.direction}
+                    onChange={(e) =>
+                      handleManualTransactionChange('direction', e.target.value)
+                    }
+                  >
+                    <option value="out">Saída</option>
+                    <option value="in">Entrada</option>
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label>Tipo</label>
+                  <select
+                    value={manualTransactionForm.transaction_type}
+                    onChange={(e) =>
+                      handleManualTransactionChange('transaction_type', e.target.value)
+                    }
+                  >
+                    <option value="purchase">Compra</option>
+                    <option value="pix_out">Pix Enviado</option>
+                    <option value="pix_in">Pix Recebido</option>
+                    <option value="transfer_out">Transferência Enviada</option>
+                    <option value="transfer_in">Transferência Recebida</option>
+                    <option value="bill_payment">Pagamento de Boleto</option>
+                    <option value="refund">Estorno</option>
+                    <option value="bank_transaction">Movimentação Bancária</option>
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label>Categoria principal</label>
+                  <select
+                    value={manualTransactionForm.main_category}
+                    onChange={(e) =>
+                      handleManualTransactionChange('main_category', e.target.value)
+                    }
+                  >
+                    <option value="">Selecione</option>
+                    {categorySchema.map((category) => (
+                      <option key={category.key} value={category.key}>
+                        {category.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label>Subcategoria</label>
+                  <select
+                    value={manualTransactionForm.subcategory}
+                    onChange={(e) =>
+                      handleManualTransactionChange('subcategory', e.target.value)
+                    }
+                    disabled={!manualTransactionForm.main_category}
+                  >
+                    <option value="">Selecione</option>
+                    {(subcategoryMap[manualTransactionForm.main_category] || []).map(
+                      (subKey) => (
+                        <option key={subKey} value={subKey}>
+                          {formatCategoryLabel(subKey)}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label>Origem financeira</label>
+                  <select
+                    value={manualTransactionForm.source_type}
+                    onChange={(e) =>
+                      handleManualTransactionChange('source_type', e.target.value)
+                    }
+                  >
+                    <option value="bank_account">Conta</option>
+                    <option value="credit_card">Cartão</option>
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label>Instituição / fonte</label>
+                  <input
+                    type="text"
+                    placeholder="Ex.: nubank, inter, c6"
+                    value={manualTransactionForm.source_name}
+                    onChange={(e) =>
+                      handleManualTransactionChange('source_name', e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+
+              {formError && <p className="form-error-message">{formError}</p>}
+            </div>
+
+            <div className="category-modal-footer">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={closeCreateManualModal}
+                disabled={creatingManualTransaction}
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                className="filter-button"
+                onClick={saveManualTransaction}
+                disabled={creatingManualTransaction}
+              >
+                {creatingManualTransaction ? 'Salvando...' : 'Salvar transação'}
               </button>
             </div>
           </div>
