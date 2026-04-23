@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import PageLoader from './components/PageLoader'
+import { generateInsights } from './utils/insights'
 
 import {
   BarChart,
@@ -16,6 +17,32 @@ import {
   LabelList,
 
 } from 'recharts'
+
+
+function Typewriter({ text, speed = 18, delay = 0 }) {
+  const [displayed, setDisplayed] = useState('')
+
+  useEffect(() => {
+    let index = 0
+
+    const timeout = setTimeout(() => {
+      const interval = setInterval(() => {
+        setDisplayed(text.slice(0, index + 1))
+        index++
+
+        if (index === text.length) {
+          clearInterval(interval)
+        }
+      }, speed)
+
+      return () => clearInterval(interval)
+    }, delay)
+
+    return () => clearTimeout(timeout)
+  }, [text, speed, delay])
+
+  return <span className="typewriter">{displayed}</span>
+}
 
 
 
@@ -52,6 +79,15 @@ function App() {
     return desc.slice(0, 24)
   }
 
+  function buildNarrative(insights) {
+    if (!insights.length) return ''
+
+    return insights
+      .map((insight) => insight.message.replace(/\.$/, ''))
+      .join(' • ')
+      + '.'
+  }
+
 
   const [transactions, setTransactions] = useState([])
   const [summary, setSummary] = useState(null)
@@ -61,6 +97,12 @@ function App() {
   const [byCategory, setByCategory] = useState([])
   const [monthlyTrend, setMonthlyTrend] = useState([])
   const [categorySchema, setCategorySchema] = useState([])
+
+  const insights = generateInsights({
+    summary,
+    byCategory,
+    transactions,
+  })
 
   const [filters, setFilters] = useState({
     year: '',
@@ -162,6 +204,14 @@ function App() {
       </div>
     )
 
+  }
+
+  const iconMap = {
+    alert: '⚠️',
+    positive: '✅',
+    warning: '💰',
+    highlight: '💳',
+    info: '📊'
   }
 
   useEffect(() => {
@@ -359,11 +409,11 @@ function App() {
       const name = formatTopExpenseName(transaction)
 
       if (!groupedExpenses[name]) {
-  groupedExpenses[name] = {
-    total: 0,
-    count: 0,
-  }
-}
+        groupedExpenses[name] = {
+          total: 0,
+          count: 0,
+        }
+      }
 
       groupedExpenses[name].total += transaction.absolute_amount
       groupedExpenses[name].count += 1
@@ -383,23 +433,19 @@ function App() {
   return (
     <main>
       <div className="container">
-        <header className="header">
-          <h1>FinSight AI</h1>
-          <p>Análise real do seu fluxo financeiro</p>
 
-          <div style={{ marginTop: '16px' }}>
-            <a
-              href="/transactions"
-              style={{ color: '#8864f6', textDecoration: 'none' }}
-            >
-              Ver transações →
-            </a>
-          </div>
-        </header>
 
         <div className="dashboard-layout">
           <aside className="sidebar">
             <div className="sidebar-section">
+              <div className="sidebar-brand">
+                <h1>FinSight AI</h1>
+                <p>Análise real do seu fluxo financeiro</p>
+
+                <a href="/transactions" className="sidebar-brand-link">
+                  Ver transações →
+                </a>
+              </div>
               <p>Ano</p>
               <ul>
                 {availableYears.map((year) => (
@@ -490,13 +536,12 @@ function App() {
                 </div>
                 <div
                   className={`kpi-sparkline ${monthlyBalance >= 0
-                      ? 'kpi-sparkline-positive'
-                      : 'kpi-sparkline-negative'
+                    ? 'kpi-sparkline-positive'
+                    : 'kpi-sparkline-negative'
                     }`}
                 />
               </div>
 
-              {/* 🔥 AGORA CERTO */}
               <div className="reserve-strip">
                 <div className="reserve-strip-card">
                   <div className="reserve-strip-label">Uso da reserva</div>
@@ -508,75 +553,90 @@ function App() {
                 </div>
               </div>
 
-              {/* 🔥 DONUT VOLTA PRO GRID */}
               <div className="table-container donut-card">
-  <h2>Despesas no mês</h2>
+                <h2>Despesas no mês</h2>
 
-  <div className="donut-content">
-    <div className="donut-chart-wrapper">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={
-              expenseByCategory.length
-                ? expenseByCategory
-                : [{ name: 'sem categoria', value: 1 }]
-            }
-            dataKey="value"
-            nameKey="name"
-            innerRadius={38}
-            outerRadius={52}
-            paddingAngle={2}
-          >
-            {(expenseByCategory.length
-              ? expenseByCategory
-              : [{ name: 'sem categoria', value: 1 }]
-            ).map((entry, index) => (
-              <Cell
-                key={`month-cell-${index}`}
-                fill={getCategoryColor(entry.name)}
-              />
-            ))}
-          </Pie>
-          <Tooltip content={renderDonutTooltip} />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
+                <div className="donut-content">
+                  < div className="donut-chart-wrapper">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={
+                            expenseByCategory.length
+                              ? expenseByCategory
+                              : [{ name: 'sem categoria', value: 1 }]
+                          }
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={38}
+                          outerRadius={52}
+                          paddingAngle={2}
+                        >
+                          {(expenseByCategory.length
+                            ? expenseByCategory
+                            : [{ name: 'sem categoria', value: 1 }]
+                          ).map((entry, index) => (
+                            <Cell
+                              key={`month-cell-${index}`}
+                              fill={getCategoryColor(entry.name)}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip content={renderDonutTooltip} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
 
-    <div className="donut-legend">
-      {donutLegendItems.map((item) => (
-        <div key={item.name} className="donut-legend-item">
-          <div className="donut-legend-label">
-            <span
-              className="donut-legend-color"
-              style={{
-                backgroundColor: getCategoryColor(item.name),
-              }}
-            />
-            <span>{formatCategory(item.name)}</span>
-          </div>
+                  <div className="donut-legend">
+                    {donutLegendItems.map((item) => (
+                      <div key={item.name} className="donut-legend-item">
+                        <div className="donut-legend-label">
+                          <span
+                            className="donut-legend-color"
+                            style={{
+                              backgroundColor: getCategoryColor(item.name),
+                            }}
+                          />
+                          <span>{formatCategory(item.name)}</span>
+                        </div>
 
-          <strong>R$ {Number(item.value).toFixed(2)}</strong>
-        </div>
-      ))}
+                        <strong>R$ {Number(item.value).toFixed(2)}</strong>
+                      </div>
+                    ))}
 
-      {!donutLegendItems.length && (
-        <div className="donut-legend-empty">
-          Sem despesas categorizadas
-        </div>
-      )}
-    </div>
-  </div>
-</div>
+                    {!donutLegendItems.length && (
+                      <div className="donut-legend-empty">
+                        Sem despesas categorizadas
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </section>
 
+            <section className="ai-insights">
 
+              <div className="ai-insights-grid">
+                {insights.map((insight, index) => (
+                  <div key={index} className={`ai-card ${insight.type}`}>
+                    <h4>{iconMap[insight.type]} {insight.title}</h4>
+                    <p>
+                      <Typewriter
+                        text={insight.message}
+                        speed={18}
+                        delay={1100 + index * 800}
+                      />
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
 
             <section className="analytics-grid">
               <div className="table-container analytics-main-card">
                 <h2>Análise mensal</h2>
 
-                <div style={{ width: '100%', height: 250 }}>
+                <div style={{ width: '100%', height: 280 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={monthlyTrendChartData}
@@ -649,7 +709,7 @@ function App() {
               <div className="table-container analytics-side-card">
                 <h2>Top gastos</h2>
 
-                <div style={{ width: '100%', height: 250 }}>
+                <div style={{ width: '100%', height: 280 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={topExpenses}

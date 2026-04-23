@@ -148,3 +148,8 @@
   }
 }
 
+@media (max-width: 900px) {
+  .ai-card:first-child {
+    grid-column: span 1;
+  }
+}
