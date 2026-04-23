@@ -88,29 +88,46 @@ function App() {
       + '.'
   }
 
-
-  const [transactions, setTransactions] = useState([])
-  const [summary, setSummary] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [months, setMonths] = useState([])
-  const [byCategory, setByCategory] = useState([])
-  const [monthlyTrend, setMonthlyTrend] = useState([])
-  const [categorySchema, setCategorySchema] = useState([])
-
-  const [filters, setFilters] = useState({
-    year: '',
-    month: '',
+  function formatCurrency(value) {
+  return Number(value || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
   })
+}
 
-  const isYearView = !filters.month
-
-  const insights = generateInsights({
-    summary,
-    byCategory,
-    transactions,
-    isYearView,
+function formatCompactCurrency(value) {
+  return Number(value || 0).toLocaleString('pt-BR', {
+    notation: 'compact',
+    compactDisplay: 'short',
+    maximumFractionDigits: 1,
+    style: 'currency',
+    currency: 'BRL',
   })
+}
+
+
+ const [transactions, setTransactions] = useState([])
+const [summary, setSummary] = useState(null)
+const [loading, setLoading] = useState(true)
+const [error, setError] = useState('')
+const [months, setMonths] = useState([])
+const [byCategory, setByCategory] = useState([])
+const [monthlyTrend, setMonthlyTrend] = useState([])
+const [categorySchema, setCategorySchema] = useState([])
+
+const [filters, setFilters] = useState({
+  year: '',
+  month: '',
+})
+
+const isYearView = !filters.month
+
+const insights = generateInsights({
+  summary,
+  byCategory,
+  transactions,
+  isYearView,
+})
 
 
 
@@ -205,7 +222,7 @@ function App() {
             color: '#cbd5e1',
           }}
         >
-          {`R$ ${value.toFixed(2)} • ${percentage.toFixed(1)}%`}
+          {`${formatCurrency(value)} • ${percentage.toFixed(1)}%`}
         </p>
       </div>
     )
@@ -363,7 +380,7 @@ function App() {
   const monthlyIncome = Number(summary?.total_income ?? 0)
   const monthlyExpenses = Number(summary?.total_expenses ?? 0)
   const monthlyBalance = monthlyIncome - monthlyExpenses
-  const reserveRedemptionTotal = Number(summary?.reserve_redemption_total ?? 0)
+  const reserveNet = Number(summary?.reserve_net ?? 0)
   const reserveDependency = Number(summary?.reserve_dependency ?? 0)
 
   const rawCategories = byCategory
@@ -517,7 +534,7 @@ function App() {
                 <div className="kpi-card-content">
                   <p>{isYearView ? 'Entrada anual' : 'Entrada do mês'}</p>
                   <h2 style={{ color: 'var(--color-positive)' }}>
-                    R$ {monthlyIncome.toFixed(2)}
+                    {formatCurrency(monthlyIncome)}
                   </h2>
                 </div>
                 <div className="kpi-sparkline kpi-sparkline-positive" />
@@ -527,7 +544,7 @@ function App() {
                 <div className="kpi-card-content">
                   <p>{isYearView ? 'Saída do anual' : 'Saída do mês'}</p>
                   <h2 style={{ color: 'var(--color-negative)' }}>
-                    R$ {monthlyExpenses.toFixed(2)}
+                    {formatCurrency(monthlyExpenses)}
                   </h2>
                 </div>
                 <div className="kpi-sparkline kpi-sparkline-negative" />
@@ -544,7 +561,7 @@ function App() {
                           : 'var(--color-negative)',
                     }}
                   >
-                    R$ {monthlyBalance.toFixed(2)}
+                    {formatCurrency(monthlyBalance)}
                   </h2>
                 </div>
                 <div
@@ -557,11 +574,23 @@ function App() {
 
               <div className="reserve-strip">
                 <div className="reserve-strip-card">
-                  <div className="reserve-strip-label">Uso da reserva</div>
+                  <div className="reserve-strip-label">
+                    {reserveNet > 0
+                      ? 'Uso da reserva'
+                      : reserveNet < 0
+                        ? 'Aumento da reserva'
+                        : 'Reserva estável'}
+                  </div>
 
                   <div className="reserve-strip-values">
-                    <strong>R$ {reserveRedemptionTotal.toFixed(2)}</strong>
-                    <span>{reserveDependency.toFixed(1)}% das saídas do mês</span>
+                    <strong>{formatCurrency(Math.abs(reserveNet))}</strong>
+                    <span>
+  {reserveNet > 0
+    ? `${reserveDependency.toFixed(1)}% das saídas do ${isYearView ? 'ano' : 'mês'}`
+    : reserveNet < 0
+    ? `Você aumentou sua reserva neste ${isYearView ? 'ano' : 'mês'}`
+    : `Sem impacto na reserva`}
+</span>
                   </div>
                 </div>
               </div>
@@ -613,7 +642,7 @@ function App() {
                           <span>{formatCategory(item.name)}</span>
                         </div>
 
-                        <strong>R$ {Number(item.value).toFixed(2)}</strong>
+                        <strong>{formatCurrency(item.value)}</strong>
                       </div>
                     ))}
 
@@ -672,13 +701,13 @@ function App() {
                         stroke="rgba(228, 228, 231, 0.35)"
                         tickLine={false}
                         axisLine={false}
-                        tickFormatter={(value) => `R$ ${value / 1000}k`}
+                        tickFormatter={(value) => formatCompactCurrency(value)}
                         width={55}
                         ticks={[0, 5000, 10000, 15000, 20000, 25000]}
                       />
                       <Tooltip
                         cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
-                        formatter={(value) => `R$ ${Number(value).toFixed(2)}`}
+                        formatter={(value) => formatCurrency(value)}
                         contentStyle={{
                           background: '#111827',
                           border: '1px solid rgba(167, 139, 250, 0.18)',
@@ -742,7 +771,7 @@ function App() {
                         tickLine={false}
                         axisLine={false}
                         domain={[0, 'dataMax + 250']}
-                        tickFormatter={(value) => `R$ ${value / 1000}k`}
+                        tickFormatter={(value) => formatCompactCurrency(value)}
                       />
                       <YAxis
                         dataKey="name"
@@ -754,7 +783,7 @@ function App() {
                       />
                       <Tooltip
                         cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
-                        formatter={(value) => `R$ ${Number(value).toFixed(2)}`}
+                        formatter={(value) => formatCurrency(value)}
                         contentStyle={{
                           background: '#111827',
                           border: '1px solid rgba(167, 139, 250, 0.18)',
@@ -773,7 +802,7 @@ function App() {
                         <LabelList
                           dataKey="value"
                           position="right"
-                          formatter={(value) => `R$ ${Number(value).toFixed(2)}`}
+                          formatter={(value) => formatCurrency(value)}
                           style={{
                             fill: '#e5e7eb',
                             fontSize: 13,

@@ -45,6 +45,7 @@ def consolidate_transactions(
     internal_transfers_total = 0.0
     ignored_total = 0.0
     reserve_redemption_total = 0.0
+    reserve_application_total = 0.0
 
     income_transactions = []
     expense_transactions = []
@@ -77,12 +78,20 @@ def consolidate_transactions(
         if transaction.get("transaction_type") == "investment_redemption":
             reserve_redemption_total += absolute_amount
 
+        if transaction.get("transaction_type") == "investment_application":
+            reserve_application_total += absolute_amount
+
+        if transaction.get("transaction_type") == "investment_application":
+            reserve_application_total += absolute_amount
+
+    reserve_net = reserve_redemption_total - reserve_application_total
+
     net_cashflow = real_income - real_expenses
 
     reserve_dependency = 0.0
 
-    if real_expenses > 0:
-        reserve_dependency = (reserve_redemption_total / real_expenses) * 100
+    if real_expenses > 0 and reserve_net > 0:
+        reserve_dependency = (reserve_net / real_expenses) * 100
 
     return {
         "transactions_count": len(transactions),
@@ -101,6 +110,8 @@ def consolidate_transactions(
         "net_cashflow": round(net_cashflow, 2),
         "by_type": build_consolidated_by_type(transactions),
         "by_source_type": build_consolidated_by_source_type(transactions),
+        "reserve_application_total": round(reserve_application_total, 2),
+        "reserve_net": round(reserve_net, 2),
     }
 
 
