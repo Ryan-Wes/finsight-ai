@@ -10,6 +10,7 @@ EXPENSE_TYPES = {
     "pix_out",
     "transfer_out",
     "bill_payment",
+    "bank_transaction",
 }
 
 
@@ -81,17 +82,14 @@ def consolidate_transactions(
         if transaction.get("transaction_type") == "investment_application":
             reserve_application_total += absolute_amount
 
-        if transaction.get("transaction_type") == "investment_application":
-            reserve_application_total += absolute_amount
-
-    reserve_net = reserve_redemption_total - reserve_application_total
+    reserve_net = reserve_application_total - reserve_redemption_total
 
     net_cashflow = real_income - real_expenses
 
     reserve_dependency = 0.0
 
-    if real_expenses > 0 and reserve_net > 0:
-        reserve_dependency = (reserve_net / real_expenses) * 100
+    if real_expenses > 0 and reserve_net < 0:
+        reserve_dependency = (abs(reserve_net) / real_expenses) * 100
 
     return {
         "transactions_count": len(transactions),
@@ -362,4 +360,79 @@ def get_monthly_trend_summary(
             "cashflow": round(data["cashflow"], 2),
         }
         for month, data in sorted(grouped.items())
+    ]
+
+
+def get_daily_trend_summary(transactions: list[dict], month: str):
+    from collections import defaultdict
+
+    daily_data = defaultdict(lambda: {
+        "date": "",
+        "income": 0,
+        "expense": 0,
+        "items": [],
+    })
+
+    for transaction in transactions:
+        if transaction.get("competency_month") != month:
+            continue
+
+        date = transaction.get("transaction_date")
+        if not date:
+            continue
+
+        day = date[-2:]  # pega só o dia (01, 02, etc)
+
+        key = day
+        daily_data[key]["date"] = day
+
+        transaction_type = transaction.get("transaction_type")
+        absolute_amount = transaction.get("absolute_amount", 0)
+        is_ignored = transaction.get("is_ignored_in_spending", 0)
+
+        description = (
+            transaction.get("display_description")
+            or transaction.get("raw_description")
+            or transaction.get("normalized_description")
+            or "Transação"
+)
+
+        # ENTRADA REAL
+        if transaction_type in ["transfer_in", "pix_in"]:
+            daily_data[key]["income"] += absolute_amount
+            daily_data[key]["items"].append({
+                "type": "income",
+                "description": description,
+                "amount": round(absolute_amount, 2),
+            })
+
+        # SAÍDA REAL
+        if (
+            transaction_type in [
+                "credit_card_bill_payment",
+                "pix_out",
+                "transfer_out",
+                "bill_payment",
+                "bank_transaction",
+            ]
+            and not is_ignored
+        ):
+            daily_data[key]["expense"] += absolute_amount
+            daily_data[key]["items"].append({
+                "type": "expense",
+                "description": description,
+                "amount": round(absolute_amount, 2),
+            })
+
+    # ordenar por dia
+    result = sorted(daily_data.values(), key=lambda x: x["date"])
+
+    return [
+        {
+            "date": item["date"],
+            "income": round(item["income"], 2),
+            "expense": round(item["expense"], 2),
+            "items": item["items"],
+        }
+        for item in result
     ]

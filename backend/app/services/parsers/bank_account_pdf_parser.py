@@ -145,7 +145,6 @@ def build_flags(transaction_type: str) -> tuple[int, int]:
     if transaction_type in {
         "transfer_in",
         "transfer_out",
-        "credit_card_bill_payment",
     }:
         is_internal_transfer = 1
 

@@ -6,6 +6,8 @@ from app.services.consolidation_service import consolidate_transactions
 from app.services.transaction_service import get_transactions_summary
 from app.services import consolidation_service
 
+from app.services.consolidation_service import get_daily_trend_summary
+
 router = APIRouter(tags=["summary"])
 
 
@@ -51,3 +53,21 @@ def get_monthly_trend(
         source=source,
     )
     return {"monthly_trend": data}
+
+
+@router.get("/daily-trend")
+def get_daily_trend(month: str):
+    from app.services.transaction_service import list_transactions
+
+    transactions_data = list_transactions(
+        month=month,
+        limit=100000,
+        offset=0,
+    )
+
+    data = get_daily_trend_summary(
+        transactions=transactions_data["items"],
+        month=month,
+    )
+
+    return {"daily_trend": data}

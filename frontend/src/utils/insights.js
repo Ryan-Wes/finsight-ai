@@ -1,8 +1,8 @@
 function formatCurrency(value) {
-  return Number(value || 0).toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  })
+    return Number(value || 0).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+    })
 }
 
 function formatInsightCategory(category) {
@@ -63,15 +63,15 @@ export function generateInsights({
 
     if (reserveNet > 0) {
         insights.push({
-            type: 'warning',
-            title: 'Uso da reserva',
-            message: `Você utilizou ${formatCurrency(reserveNet)} da reserva no ${periodLabel} (${reservePct.toFixed(1)}% das saídas).`,
+            type: 'positive',
+            title: 'Reserva aumentou',
+            message: `Você aumentou sua reserva em ${formatCurrency(reserveNet)} no ${periodLabel}.`,
         })
     } else if (reserveNet < 0) {
         insights.push({
-            type: 'positive',
-            title: 'Reserva aumentou',
-            message: `Você aumentou sua reserva em ${formatCurrency(Math.abs(reserveNet))} no ${periodLabel}.`,
+            type: 'warning',
+            title: 'Uso da reserva',
+            message: `Você utilizou ${formatCurrency(Math.abs(reserveNet))} da reserva no ${periodLabel} (${reservePct.toFixed(1)}% das saídas).`,
         })
     }
 

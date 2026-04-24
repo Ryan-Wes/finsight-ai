@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import PageLoader from './components/PageLoader'
 import { generateInsights } from './utils/insights'
+import logo from './assets/logo-full.png'
 
 import {
   BarChart,
@@ -103,19 +104,19 @@ function App() {
     }).replace('mil', ' mil').replace('mi', ' mi')
   }
 
-function formatAxisCurrency(value) {
-  const number = Number(value || 0)
+  function formatAxisCurrency(value) {
+    const number = Number(value || 0)
 
-  if (number >= 1000) {
-    const formatted = (number / 1000).toLocaleString('pt-BR', {
-      maximumFractionDigits: 1,
-    })
+    if (number >= 1000) {
+      const formatted = (number / 1000).toLocaleString('pt-BR', {
+        maximumFractionDigits: 1,
+      })
 
-    return `R$\u00A0${formatted}\u00A0mil`
+      return `R$\u00A0${formatted}\u00A0mil`
+    }
+
+    return `R$\u00A0${number.toLocaleString('pt-BR')}`
   }
-
-  return `R$\u00A0${number.toLocaleString('pt-BR')}`
-}
 
 
   const [transactions, setTransactions] = useState([])
@@ -125,6 +126,7 @@ function formatAxisCurrency(value) {
   const [months, setMonths] = useState([])
   const [byCategory, setByCategory] = useState([])
   const [monthlyTrend, setMonthlyTrend] = useState([])
+  const [dailyTrend, setDailyTrend] = useState([])
   const [categorySchema, setCategorySchema] = useState([])
 
   const [filters, setFilters] = useState({
@@ -209,8 +211,8 @@ function formatAxisCurrency(value) {
     return (
       <div
         style={{
-          background: '#111827',
-          border: '1px solid rgba(167, 139, 250, 0.25)',
+          background: 'rgba(24, 10, 35, 0.98)',
+          border: '1px solid rgba(167, 139, 250, 0.35)',
           borderRadius: '12px',
           padding: '12px 14px',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
@@ -283,12 +285,19 @@ function formatAxisCurrency(value) {
           byCategoryResponse,
           monthlyTrendResponse,
           categorySchemaResponse,
+          dailyTrendResponse,
         ] = await Promise.all([
           fetch(`http://127.0.0.1:8000/api/transactions?${queryString}`),
           fetch(`http://127.0.0.1:8000/api/summary/consolidated?${queryString}`),
           fetch(`http://127.0.0.1:8000/api/summary/by-category?${queryString}`),
           fetch('http://127.0.0.1:8000/api/summary/monthly-trend'),
           fetch('http://127.0.0.1:8000/api/categories/schema'),
+          filters.month
+            ? fetch(`http://127.0.0.1:8000/api/daily-trend?month=${filters.month}`)
+            : Promise.resolve({
+              ok: true,
+              json: async () => ({ daily_trend: [] }),
+            }),
         ])
 
         if (
@@ -307,11 +316,18 @@ function formatAxisCurrency(value) {
         const monthlyTrendData = await monthlyTrendResponse.json()
         const categorySchemaData = await categorySchemaResponse.json()
 
+        let dailyTrendData = { daily_trend: [] }
+
+        if (dailyTrendResponse && dailyTrendResponse.ok) {
+          dailyTrendData = await dailyTrendResponse.json()
+        }
+
         setTransactions(transactionsData.items || [])
         setSummary(summaryData)
         setByCategory(byCategoryData.by_category || [])
         setMonthlyTrend(monthlyTrendData.monthly_trend || [])
         setCategorySchema(categorySchemaData.categories || [])
+        setDailyTrend(dailyTrendData.daily_trend || [])
       } catch (err) {
         setError(err.message || 'Erro inesperado')
       } finally {
@@ -338,6 +354,28 @@ function formatAxisCurrency(value) {
       '10': 'out',
       '11': 'nov',
       '12': 'dez',
+    }
+
+    return map[month] || month
+  }
+
+
+  function formatFullMonthLabel(monthStr) {
+    const [, month] = monthStr.split('-')
+
+    const map = {
+      '01': 'Janeiro',
+      '02': 'Fevereiro',
+      '03': 'Março',
+      '04': 'Abril',
+      '05': 'Maio',
+      '06': 'Junho',
+      '07': 'Julho',
+      '08': 'Agosto',
+      '09': 'Setembro',
+      '10': 'Outubro',
+      '11': 'Novembro',
+      '12': 'Dezembro',
     }
 
     return map[month] || month
@@ -388,6 +426,31 @@ function formatAxisCurrency(value) {
       income: item.income,
       expenses: item.expenses,
     }))
+
+  const dailyTrendChartData = dailyTrend.map((item) => ({
+    name: item.date,
+    income: item.income,
+    expenses: item.expense,
+    items: item.items || [],
+  }))
+
+  const analysisChartData = isYearView ? monthlyTrendChartData : dailyTrendChartData
+
+  const maxAnalysisValue = Math.max(
+    0,
+    ...analysisChartData.map((item) =>
+      Math.max(Number(item.income || 0), Number(item.expenses || 0))
+    )
+  )
+
+  const roundedMaxAnalysisValue =
+    maxAnalysisValue <= 0
+      ? 1000
+      : Math.ceil(maxAnalysisValue / 1000) * 1000
+
+  const analysisTicks = Array.from({ length: 5 }, (_, index) =>
+    Math.round((roundedMaxAnalysisValue / 4) * index)
+  )
 
   const monthlyIncome = Number(summary?.total_income ?? 0)
   const monthlyExpenses = Number(summary?.total_expenses ?? 0)
@@ -466,6 +529,67 @@ function formatAxisCurrency(value) {
     .sort((a, b) => b.value - a.value)
     .slice(0, 5)
 
+
+
+  function renderDailyTooltip({ active, payload, label }) {
+    if (!active || !payload || !payload.length) return null
+
+    const data = payload?.[0]?.payload
+    if (!data) return null
+
+    const items = data.items || []
+
+    return (
+      <div
+        style={{
+          background: 'rgba(24, 10, 35, 0.98)',
+          border: '1px solid rgba(167, 139, 250, 0.35)',
+          borderRadius: '12px',
+          padding: '12px 14px',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
+          maxWidth: 480,
+        }}
+      >
+        <p style={{ margin: 0, fontWeight: 600 }}>
+          Dia {String(label).padStart(2, '0')}
+        </p>
+
+        <div style={{ marginTop: 8 }}>
+          {items.length === 0 && (
+            <p style={{ margin: 0, color: '#a1a1aa' }}>
+              Sem movimentações
+            </p>
+          )}
+
+          {items.map((item, index) => (
+            <p
+              key={index}
+              style={{
+                margin: '8px 0',
+                fontSize: 13,
+                color: '#f4f4f5',
+                lineHeight: 1.35,
+              }}
+            >
+              <span>{item.type === 'income' ? '+' : '-'} </span>
+              <span>{item.description.slice(0, 42)}</span>
+              <strong
+                style={{
+                  marginLeft: 8,
+                  color: item.type === 'income' ? '#22c55e' : '#f43f5e',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {formatCurrency(item.amount)}
+              </strong>
+            </p>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+
   if (loading) return <PageLoader />
   if (error) return <h1>{error}</h1>
 
@@ -481,8 +605,14 @@ function formatAxisCurrency(value) {
           <aside className="sidebar">
             <div className="sidebar-section">
               <div className="sidebar-brand">
-                <h1>FinSight AI</h1>
-                <p>Análise real do seu fluxo financeiro</p>
+                <div className="sidebar-logo-row">
+                  <img
+                    src={logo}
+                    alt="Velora AI"
+                    className="sidebar-logo"
+                  />
+                </div>
+                <p>Clareza financeira com inteligência artificial</p>
 
                 <a href="/transactions" className="sidebar-brand-link">
                   Ver transações →
@@ -588,9 +718,9 @@ function formatAxisCurrency(value) {
                 <div className="reserve-strip-card">
                   <div className="reserve-strip-label">
                     {reserveNet > 0
-                      ? 'Uso da reserva'
+                      ? 'Aumento da reserva'
                       : reserveNet < 0
-                        ? 'Aumento da reserva'
+                        ? 'Uso da reserva'
                         : 'Reserva estável'}
                   </div>
 
@@ -598,9 +728,9 @@ function formatAxisCurrency(value) {
                     <strong>{formatCurrency(Math.abs(reserveNet))}</strong>
                     <span>
                       {reserveNet > 0
-                        ? `${reserveDependency.toFixed(1)}% das saídas do ${isYearView ? 'ano' : 'mês'}`
+                        ? `Você aumentou sua reserva neste ${isYearView ? 'ano' : 'mês'}`
                         : reserveNet < 0
-                          ? `Você aumentou sua reserva neste ${isYearView ? 'ano' : 'mês'}`
+                          ? `${reserveDependency.toFixed(1)}% das saídas do ${isYearView ? 'ano' : 'mês'}`
                           : `Sem impacto na reserva`}
                     </span>
                   </div>
@@ -688,12 +818,16 @@ function formatAxisCurrency(value) {
 
             <section className="analytics-grid">
               <div className="table-container analytics-main-card">
-                <h2>{isYearView ? 'Análise anual' : 'Análise mensal'}</h2>
+                <h2>
+                  {isYearView
+                    ? 'Análise anual'
+                    : `Análise diária de ${formatFullMonthLabel(filters.month)}`}
+                </h2>
 
                 <div style={{ width: '100%', height: 280 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={monthlyTrendChartData}
+                      data={analysisChartData}
                       barCategoryGap="32%"
                       barGap={5}
                       margin={{ top: 35, right: 10, left: 10, bottom: 0 }}
@@ -717,7 +851,8 @@ function formatAxisCurrency(value) {
                           formatAxisCurrency(value).replace(' ', '\u00A0')
                         }
                         width={75}
-                        ticks={[0, 5000, 10000, 15000, 20000, 25000]}
+                        domain={[0, roundedMaxAnalysisValue]}
+                        ticks={analysisTicks}
                         tick={{
                           fill: '#a1a1aa',
                           fontSize: 15,
@@ -726,15 +861,21 @@ function formatAxisCurrency(value) {
                       />
                       <Tooltip
                         cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
-                        formatter={(value) => formatCurrency(value)}
-                        contentStyle={{
-                          background: '#111827',
-                          border: '1px solid rgba(167, 139, 250, 0.18)',
-                          borderRadius: '12px',
-                          color: '#e5e7eb',
-                          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
-                        }}
-                        labelStyle={{ color: '#e5e7eb', fontWeight: 600 }}
+                        content={isYearView ? undefined : renderDailyTooltip}
+                        formatter={isYearView ? (value) => formatCurrency(value) : undefined}
+                        contentStyle={
+                          isYearView
+                            ? {
+                              background: 'rgba(24, 10, 35, 0.98)',
+                              border: '1px solid rgba(167, 139, 250, 0.35)',
+                              borderRadius: '12px',
+                              color: '#e5e7eb',
+                              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
+                              maxHeight: 360,
+                              overflowY: 'auto',
+                            }
+                            : undefined
+                        }
                       />
                       <Legend
                         verticalAlign="top"
@@ -806,8 +947,8 @@ function formatAxisCurrency(value) {
                         cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
                         formatter={(value) => formatCurrency(value)}
                         contentStyle={{
-                          background: '#111827',
-                          border: '1px solid rgba(167, 139, 250, 0.18)',
+                          background: 'rgba(24, 10, 35, 0.98)',
+                          border: '1px solid rgba(167, 139, 250, 0.35)',
                           borderRadius: '12px',
                           color: '#e5e7eb',
                           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
