@@ -44,7 +44,16 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup() -> None:
-    create_tables()
+    try:
+        print("🚀 Starting Velora API...")
+
+        create_tables()
+
+        print("✅ Tables created successfully")
+
+    except Exception as e:
+        print("❌ ERROR ON STARTUP:", str(e))
+        raise e
 
 
 @app.get("/")
