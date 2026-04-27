@@ -1,13 +1,14 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
-from app.database import DB_PATH, create_tables, get_connection
+from app.database import create_tables, get_connection
+from app.services.auth_service import get_current_user_id
 from app.services.transaction_service import normalize_category_name
 
 router = APIRouter(tags=["dev"])
 
 
 @router.post("/dev/normalize-categories")
-def normalize_categories():
+def normalize_categories(user_id: str = Depends(get_current_user_id)):
     with get_connection() as connection:
         cursor = connection.cursor()
 
@@ -16,7 +17,9 @@ def normalize_categories():
             SELECT id, category
             FROM transactions
             WHERE category IS NOT NULL
-            """
+              AND user_id = ?
+            """,
+            (user_id,),
         )
 
         rows = cursor.fetchall()
@@ -33,8 +36,9 @@ def normalize_categories():
                     UPDATE transactions
                     SET category = ?
                     WHERE id = ?
+                      AND user_id = ?
                     """,
-                    (normalized, transaction_id),
+                    (normalized, transaction_id, user_id),
                 )
                 updated += 1
 
@@ -47,17 +51,30 @@ def normalize_categories():
 
 
 @router.delete("/dev/reset")
-def reset_database():
+def reset_database(user_id: str = Depends(get_current_user_id)):
     with get_connection() as connection:
         cursor = connection.cursor()
 
-        cursor.execute("DROP TABLE IF EXISTS transactions")
-        cursor.execute("DROP TABLE IF EXISTS imports")
+        cursor.execute(
+            """
+            DELETE FROM transactions
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        )
+
+        cursor.execute(
+            """
+            DELETE FROM imports
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        )
 
         connection.commit()
 
     create_tables()
 
     return {
-        "message": "Database reset successfully",
+        "message": "User database reset successfully",
     }
