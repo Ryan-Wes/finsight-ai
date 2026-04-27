@@ -1,6 +1,6 @@
 from sqlite3 import IntegrityError
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, UploadFile, Depends
 
 from app.services.file_classifier import (
     detect_file_format,
@@ -30,11 +30,16 @@ from app.utils.file_handler import (
     save_uploaded_file,
 )
 
+from app.services.auth_service import get_current_user_id
+
 router = APIRouter()
 
 
 @router.post("/upload")
-async def upload_file(files: list[UploadFile] = File(...)):
+async def upload_file(
+    files: list[UploadFile] = File(...),
+    user_id: str = Depends(get_current_user_id),
+):
     results = []
 
     for file in files:
@@ -148,6 +153,7 @@ async def upload_file(files: list[UploadFile] = File(...)):
                 save_result = save_transactions(
                     import_id=import_id,
                     transactions=transactions,
+                    user_id=user_id,
                 )
 
             results.append(

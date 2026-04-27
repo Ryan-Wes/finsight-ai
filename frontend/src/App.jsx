@@ -6,6 +6,8 @@ import logo from './assets/logo-full.png'
 import { supabase } from './lib/supabaseClient'
 import { useNavigate } from 'react-router-dom'
 
+import { authFetch } from './lib/authFetch'
+
 import {
   BarChart,
   Bar,
@@ -274,6 +276,10 @@ function App() {
   }, [navigate])
 
   useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
     async function fetchData() {
       try {
         setLoading(true)
@@ -290,9 +296,7 @@ function App() {
 
         const queryString = queryParams.toString()
 
-        const monthsResponse = await fetch(
-          `${API_BASE_URL}/api/transactions/months`
-        )
+        const monthsResponse = await authFetch('/api/transactions/months')
 
         if (!monthsResponse.ok) {
           throw new Error('Erro ao buscar meses')
@@ -309,13 +313,13 @@ function App() {
           categorySchemaResponse,
           dailyTrendResponse,
         ] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/transactions?${queryString}`),
-          fetch(`${API_BASE_URL}/api/summary/consolidated?${queryString}`),
-          fetch(`${API_BASE_URL}/api/summary/by-category?${queryString}`),
-          fetch(`${API_BASE_URL}/api/summary/monthly-trend`),
+          authFetch(`/api/transactions?${queryString}`),
+          authFetch(`/api/summary/consolidated?${queryString}`),
+          authFetch(`/api/summary/by-category?${queryString}`),
+          authFetch('/api/summary/monthly-trend'),
           fetch(`${API_BASE_URL}/api/categories/schema`),
           filters.month
-            ? fetch(`${API_BASE_URL}/api/daily-trend?month=${filters.month}`)
+            ? authFetch(`/api/daily-trend?month=${filters.month}`)
             : Promise.resolve({
               ok: true,
               json: async () => ({ daily_trend: [] }),
@@ -358,7 +362,7 @@ function App() {
     }
 
     fetchData()
-  }, [filters])
+  }, [filters, authLoading])
 
   function formatMonthLabel(monthStr) {
     const [, month] = monthStr.split('-')
@@ -611,7 +615,7 @@ function App() {
     )
   }
 
-if (authLoading) return <PageLoader />
+  if (authLoading) return <PageLoader />
   if (loading) return <PageLoader />
   if (error) return <h1>{error}</h1>
 

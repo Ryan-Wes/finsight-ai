@@ -4,11 +4,15 @@ from fastapi import APIRouter, Query, Body
 
 from app.services import transaction_service
 
+from fastapi import Depends
+from app.services.auth_service import get_current_user_id
+
 router = APIRouter()
 
 
 @router.get("/transactions")
 def get_transactions(
+    user_id: str = Depends(get_current_user_id),
     month: Optional[str] = Query(None),
     transaction_type: Optional[str] = Query(None, alias="type"),
     source: Optional[str] = Query(None),
@@ -22,6 +26,7 @@ def get_transactions(
     offset: int = Query(0, ge=0),
 ):
     return transaction_service.list_transactions(
+        user_id=user_id,
         month=month,
         transaction_type=transaction_type,
         source=source,
@@ -37,8 +42,10 @@ def get_transactions(
 
 
 @router.get("/transactions/months")
-def get_available_months():
-    months = transaction_service.get_available_months()
+def get_available_months(
+    user_id: str = Depends(get_current_user_id),
+):
+    months = transaction_service.get_available_months(user_id=user_id)
     return {"months": months}
 
 

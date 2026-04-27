@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getCategoryDisplayColor } from '../utils/categoryStyle'
 import PageLoader from '../components/PageLoader'
+import { authFetch } from '../lib/authFetch'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -185,7 +186,7 @@ function TransactionsPage() {
   useEffect(() => {
     async function fetchMonths() {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/transactions/months`)
+        const response = await authFetch('/api/transactions/months')
 
         if (!response.ok) {
           throw new Error('Erro ao buscar meses disponíveis')
@@ -236,7 +237,7 @@ function TransactionsPage() {
       setCreatingCategory(true)
       setFormError('')
 
-      const response = await fetch(`${API_BASE_URL}/api/categories`, {
+      const response = await authFetch('/api/categories', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -288,17 +289,15 @@ function TransactionsPage() {
       setCreatingSubcategory(true)
       setFormError('')
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/categories/${mainCategory}/subcategories`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            label: newSubcategoryLabel,
-          }),
-        }
+      const response = await authFetch(`/api/categories/${mainCategory}/subcategories`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          label: newSubcategoryLabel,
+        }),
+      }
       )
 
       if (!response.ok) {
@@ -382,8 +381,8 @@ function TransactionsPage() {
       queryParams.append('limit', String(pagination.limit))
       queryParams.append('offset', String(pagination.offset))
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/transactions?${queryParams.toString()}`
+      const response = await authFetch(
+        `/api/transactions?${queryParams.toString()}`
       )
 
       if (!response.ok) {
@@ -465,7 +464,7 @@ function TransactionsPage() {
         formData.append('files', file)
       })
 
-      const response = await fetch(`${API_BASE_URL}/api/upload`, {
+      const response = await authFetch('/api/upload', {
         method: 'POST',
         body: formData,
       })
@@ -480,7 +479,7 @@ function TransactionsPage() {
       setUploadResults(data.results || [])
       setSelectedFiles([])
 
-      const monthsResponse = await fetch(`${API_BASE_URL}/api/transactions/months`)
+      const monthsResponse = await authFetch('/api/transactions/months')
 
       if (monthsResponse.ok) {
         const monthsData = await monthsResponse.json()
@@ -572,7 +571,7 @@ function TransactionsPage() {
       setError('')
       setUploadResults([])
 
-      const response = await fetch(`${API_BASE_URL}/api/dev/reset`, {
+      const response = await authFetch('/api/dev/reset', {
         method: 'DELETE',
       })
 
@@ -763,8 +762,8 @@ function TransactionsPage() {
       const finalAmount =
         direction === 'out' ? -Math.abs(numericAmount) : Math.abs(numericAmount)
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/transactions/manual`,
+      const response = await authFetch(
+        '/api/transactions/manual',
         {
           method: 'POST',
           headers: {
@@ -803,7 +802,7 @@ function TransactionsPage() {
       closeCreateManualModal()
       await fetchTransactions(false)
 
-      const monthsResponse = await fetch(`${API_BASE_URL}/api/transactions/months`)
+      const monthsResponse = await authFetch('/api/transactions/months')
 
       if (monthsResponse.ok) {
         const monthsData = await monthsResponse.json()
@@ -825,8 +824,8 @@ function TransactionsPage() {
     try {
       setLoadingSimilarPreview(true)
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/transactions/${transactionId}/similar-preview`
+      const response = await authFetch(
+        `/api/transactions/${transactionId}/similar-preview`
       )
 
       if (!response.ok) {
@@ -853,9 +852,9 @@ function TransactionsPage() {
       setAiSuggestionError('')
       setAiSuggestion(null)
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/ai/suggest-category`,
-        {
+      const response = await authFetch(
+  '/api/ai/suggest-category',
+  {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -985,9 +984,9 @@ function TransactionsPage() {
       setError('')
       setFormError('')
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/transactions/${selectedTransaction.id}/category`,
-        {
+      const response = await authFetch(
+  `/api/transactions/${selectedTransaction.id}/category`,
+  {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -1055,9 +1054,9 @@ function TransactionsPage() {
       setError('')
       setFormError('')
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/transactions/bulk-category`,
-        {
+      const response = await authFetch(
+  '/api/transactions/bulk-category',
+  {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

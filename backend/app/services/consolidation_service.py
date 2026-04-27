@@ -23,12 +23,14 @@ def is_real_expense_transaction(transaction: dict) -> bool:
 
 
 def consolidate_transactions(
+    user_id: str,
     month: str | None = None,
     year: str | None = None,
     transaction_type: str | None = None,
     source: str | None = None,
 ) -> dict:
     transactions_data = list_transactions(
+        user_id=user_id,
         month=month,
         year=year,
         transaction_type=transaction_type,
@@ -233,11 +235,13 @@ def build_consolidated_by_source_type(transactions: list[dict]) -> list[dict]:
 
 
 def get_by_category_summary(
+    user_id: str,
     month: str | None = None,
     transaction_type: str | None = None,
     source: str | None = None,
 ) -> list[dict]:
     transactions_data = list_transactions(
+        user_id=user_id,
         month=month,
         transaction_type=transaction_type,
         source=source,
@@ -316,10 +320,12 @@ def get_by_category_summary(
 
 
 def get_monthly_trend_summary(
+    user_id: str,
     transaction_type: str | None = None,
     source: str | None = None,
 ) -> list[dict]:
     transactions_data = list_transactions(
+        user_id=user_id,
         month=None,
         transaction_type=transaction_type,
         source=source,

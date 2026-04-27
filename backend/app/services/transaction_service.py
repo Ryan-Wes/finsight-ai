@@ -71,15 +71,17 @@ def normalize_display_description(
     return text
 
 
-def save_transactions(import_id: int, transactions: list[dict]) -> dict:
+def save_transactions(
+    import_id: int,
+    transactions: list[dict],
+    user_id: str,
+) -> dict:
     inserted_count = 0
     skipped_count = 0
     skipped_transactions = []
 
     with get_connection() as connection:
         cursor = connection.cursor()
-
-        user_id = "default_user"
 
         for transaction in transactions:
             try:
@@ -169,6 +171,7 @@ def save_transactions(import_id: int, transactions: list[dict]) -> dict:
 
 
 def list_transactions(
+    user_id: str,
     month: str | None = None,
     year: str | None = None,
     transaction_type: str | None = None,
@@ -184,8 +187,6 @@ def list_transactions(
 ) -> dict:
     with get_connection() as connection:
         cursor = connection.cursor()
-
-        user_id = "default_user"
         
 
         base_query = """
@@ -354,11 +355,9 @@ def get_transactions_summary() -> dict:
     }
 
 
-def get_available_months():
+def get_available_months(user_id: str) -> list[str]:
     conn = get_connection()
     cursor = conn.cursor()
-
-    user_id = "default_user"
 
     cursor.execute(
         """
