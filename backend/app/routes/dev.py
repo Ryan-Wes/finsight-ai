@@ -52,6 +52,8 @@ def normalize_categories(user_id: str = Depends(get_current_user_id)):
 
 @router.delete("/dev/reset")
 def reset_database(user_id: str = Depends(get_current_user_id)):
+    create_tables()
+
     with get_connection() as connection:
         cursor = connection.cursor()
 

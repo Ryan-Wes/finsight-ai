@@ -40,6 +40,15 @@ def _ensure_transactions_columns(cursor: sqlite3.Cursor) -> None:
             )
 
 
+def _ensure_imports_columns(cursor: sqlite3.Cursor) -> None:
+    existing_columns = _get_existing_columns(cursor, "imports")
+
+    if "user_id" not in existing_columns:
+        cursor.execute(
+            "ALTER TABLE imports ADD COLUMN user_id TEXT DEFAULT 'default_user'"
+        )
+
+
 def create_tables() -> None:
     with get_connection() as connection:
         cursor = connection.cursor()
@@ -132,5 +141,6 @@ def create_tables() -> None:
         )
 
         _ensure_transactions_columns(cursor)
+        _ensure_imports_columns(cursor)
 
         connection.commit()
