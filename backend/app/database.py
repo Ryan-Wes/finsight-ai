@@ -25,6 +25,7 @@ def _ensure_transactions_columns(cursor: sqlite3.Cursor) -> None:
     existing_columns = _get_existing_columns(cursor, "transactions")
 
     columns_to_add = {
+        "user_id": "TEXT DEFAULT 'default_user'",
         "main_category": "TEXT",
         "subcategory": "TEXT",
         "display_description": "TEXT",
