@@ -252,15 +252,12 @@ def get_by_category_summary(
     transactions = transactions_data["items"]
     grouped = {}
 
-    excluded_types = {
+    category_expense_types = {
         "purchase",
-        "investment_application",
-        "investment_redemption",
-        "credit_card_bill_payment",
         "pix_out",
         "transfer_out",
-        "pix_in",
-        "transfer_in",
+        "bill_payment",
+        "bank_transaction",
     }
 
     for transaction in transactions:
@@ -270,7 +267,13 @@ def get_by_category_summary(
         direction = transaction["direction"]
         absolute_amount = float(transaction["absolute_amount"])
 
-        if is_ignored or is_internal:
+        # transferências internas nunca entram no donut
+        if is_internal:
+            continue
+
+        # itens ignorados ficam fora, exceto compras no cartão,
+        # porque elas são consumo real por categoria no donut
+        if is_ignored and transaction_type_value != "purchase":
             continue
 
         raw_main_category = transaction.get("main_category")
@@ -286,8 +289,9 @@ def get_by_category_summary(
         if category == "movimentacoes":
             continue
 
-        # tipos que não devem poluir o resumo por categoria
-        if transaction_type_value in excluded_types:
+        # no donut entram só gastos de consumo por categoria
+        # fatura do cartão fica fora para não duplicar as compras
+        if transaction_type_value not in category_expense_types:
             continue
 
         if category not in grouped:

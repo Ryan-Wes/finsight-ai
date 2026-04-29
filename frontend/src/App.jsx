@@ -142,15 +142,28 @@ function App() {
   })
 
   const [authLoading, setAuthLoading] = useState(true)
+  const [userEmail, setUserEmail] = useState('')
   const navigate = useNavigate()
 
+  const userDisplayName = userEmail ? userEmail.split('@')[0] : 'usuário'
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    navigate('/auth')
+  }
+
   const isYearView = !filters.month
+
+  const reserveNet = Number(summary?.reserve_net ?? 0)
+  const reserveDependency = Number(summary?.reserve_dependency ?? 0)
 
   const insights = generateInsights({
     summary,
     byCategory,
     transactions,
     isYearView,
+    reserveNet,
+    reserveDependency,
   })
 
 
@@ -267,8 +280,11 @@ function App() {
 
       if (!data.session) {
         navigate('/auth')
+        setAuthLoading(false)
+        return
       }
 
+      setUserEmail(data.session.user.email || '')
       setAuthLoading(false)
     }
 
@@ -481,8 +497,6 @@ function App() {
   const monthlyIncome = Number(summary?.total_income ?? 0)
   const monthlyExpenses = Number(summary?.total_expenses ?? 0)
   const monthlyBalance = monthlyIncome - monthlyExpenses
-  const reserveNet = Number(summary?.reserve_net ?? 0)
-  const reserveDependency = Number(summary?.reserve_dependency ?? 0)
 
   const rawCategories = byCategory
     .filter((item) => item.expense_total > 0)
@@ -698,6 +712,22 @@ function App() {
 
           <div className="dashboard-content">
             <section className="summary-grid section-spacing">
+
+              <div className="dashboard-welcome">
+                <div>
+                  <h1>Olá, {userDisplayName}</h1>
+                  <p>Acompanhe seus gastos, reserva e categorias do mês.</p>
+                </div>
+
+                <button
+                  type="button"
+                  className="logout-button"
+                  onClick={handleLogout}
+                >
+                  Sair
+                </button>
+              </div>
+
               <div className="card kpi-card kpi-income">
                 <div className="kpi-card-content">
                   <p>{isYearView ? 'Entrada anual' : 'Entrada do mês'}</p>
@@ -738,29 +768,6 @@ function App() {
                     : 'kpi-sparkline-negative'
                     }`}
                 />
-              </div>
-
-              <div className="reserve-strip">
-                <div className="reserve-strip-card">
-                  <div className="reserve-strip-label">
-                    {reserveNet > 0
-                      ? 'Aumento da reserva'
-                      : reserveNet < 0
-                        ? 'Uso da reserva'
-                        : 'Reserva estável'}
-                  </div>
-
-                  <div className="reserve-strip-values">
-                    <strong>{formatCurrency(Math.abs(reserveNet))}</strong>
-                    <span>
-                      {reserveNet > 0
-                        ? `Você aumentou sua reserva neste ${isYearView ? 'ano' : 'mês'}`
-                        : reserveNet < 0
-                          ? `${reserveDependency.toFixed(1)}% das saídas do ${isYearView ? 'ano' : 'mês'}`
-                          : `Sem impacto na reserva`}
-                    </span>
-                  </div>
-                </div>
               </div>
 
               <div className="table-container donut-card">
@@ -850,7 +857,7 @@ function App() {
                     : `Análise diária de ${formatFullMonthLabel(filters.month)}`}
                 </h2>
 
-                <div style={{ width: '100%', height: 280 }}>
+                <div style={{ width: '100%', height: 260 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={analysisChartData}
@@ -940,7 +947,7 @@ function App() {
                 <h2>{isYearView ? 'Top gastos anual' : 'Top gastos mensal'}</h2>
 
 
-                <div style={{ width: '100%', height: 280 }}>
+                <div style={{ width: '100%', height: 260 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={topExpenses}

@@ -35,7 +35,8 @@
 }
 
 .sidebar-logo {
-  width: 180px;   /* controla tamanho */
+  width: 180px;
+  /* controla tamanho */
   height: auto;
   object-fit: contain;
 
@@ -107,11 +108,9 @@
 }
 
 .sidebar li.active {
-  background: linear-gradient(
-    135deg,
-    rgba(67, 38, 146, 0.9),
-    rgba(107, 71, 191, 0.9)
-  );
+  background: linear-gradient(135deg,
+      rgba(67, 38, 146, 0.9),
+      rgba(107, 71, 191, 0.9));
   color: #fff;
   font-weight: 600;
   box-shadow: 0 6px 20px rgba(104, 61, 236, 0.35);
@@ -136,13 +135,49 @@
   width: 100%;
 }
 
+.dashboard-welcome {
+  grid-area: welcome;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 2px 4px 0;
+}
+
+.dashboard-welcome h1 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.dashboard-welcome p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.logout-button {
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(167, 139, 250, 0.22);
+  background: rgba(167, 139, 250, 0.08);
+  color: #ddd6fe;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.logout-button:hover {
+  background: rgba(167, 139, 250, 0.16);
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(150px, 0.8fr)) minmax(300px, 1.05fr);
   grid-template-areas:
-    "income expenses balance donut"
-    "reserve reserve reserve donut";
-  grid-template-rows: 150px 70px;
+    "welcome welcome welcome donut"
+    "income expenses balance donut";
+  grid-template-rows: 58px 165px;
   gap: 14px;
   align-items: stretch;
 }
@@ -168,9 +203,13 @@
 
 
 .kpi-card {
+  height: 165px;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   position: relative;
   overflow: hidden;
-  height: 100%;
   max-height: none;
   padding: 14px 16px 12px;
   border-radius: 22px;
@@ -179,9 +218,6 @@
     var(--bg-card);
   border: 1px solid var(--border-soft);
   box-shadow: var(--shadow-soft);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
 }
 
 .kpi-card::before {
@@ -197,6 +233,7 @@
 .kpi-card-content {
   position: relative;
   z-index: 2;
+  flex: 1;
 }
 
 .kpi-card p {
@@ -344,10 +381,10 @@
 
 .analytics-main-card,
 .analytics-side-card {
-  height: 335px;
+  height: 315px;
 }
 
-.reserve-strip {
+/* .reserve-strip {
   grid-area: reserve;
   margin: 0;
   height: 100%;
@@ -396,7 +433,7 @@
   font-size: 13px;
   color: #d4d4d8;
   white-space: nowrap;
-}
+} */
 
 .section-spacing {
   margin-bottom: 14px;
@@ -430,18 +467,15 @@
 
 .ai-insights-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
 .ai-card {
-  padding: 12px 14px;
-  height: 78px;
-  min-height: 34px;
+  padding: 14px 16px;
+  height: 94px;
+  border-radius: 16px;
 
-  border-radius: 14px;
-
-  /* 👇 MESMO PADRÃO DOS GRÁFICOS */
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
     var(--bg-card);
@@ -453,6 +487,7 @@
   flex-direction: column;
   justify-content: center;
 }
+
 .ai-card h4 {
   margin: 0 0 6px;
   font-size: 15px;
@@ -465,10 +500,21 @@
 }
 
 /* cores por tipo */
-.ai-card.positive { border-color: rgba(139, 250, 215, 0.45); }
-.ai-card.alert { border-color: rgba(239, 68, 68, 0.55); }
-.ai-card.warning { border-color: rgba(250, 204, 21, 0.45); }
-.ai-card.highlight { border-color: rgba(167, 139, 250, 0.45); }
+.ai-card.positive {
+  border-color: rgba(139, 250, 215, 0.45);
+}
+
+.ai-card.alert {
+  border-color: rgba(239, 68, 68, 0.55);
+}
+
+.ai-card.warning {
+  border-color: rgba(250, 204, 21, 0.45);
+}
+
+.ai-card.highlight {
+  border-color: rgba(167, 139, 250, 0.45);
+}
 
 .typewriter::after {
   content: '';
@@ -483,6 +529,15 @@
 }
 
 @keyframes blink {
-  0%, 50%, 100% { opacity: 1; }
-  55%, 95% { opacity: 0; }
+
+  0%,
+  50%,
+  100% {
+    opacity: 1;
+  }
+
+  55%,
+  95% {
+    opacity: 0;
+  }
 }
