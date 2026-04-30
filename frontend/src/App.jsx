@@ -792,7 +792,7 @@ function App() {
     }))
     .sort((a, b) => b.value - a.value)
 
-  const MAX_VISIBLE_CATEGORIES = 8
+  const MAX_VISIBLE_CATEGORIES = 5
 
   const explicitOthers = rawCategories.find((item) => item.name === 'outros')
 
@@ -811,9 +811,8 @@ function App() {
   const expenseByCategory = [
     ...visibleCategories,
     ...(hiddenCategoriesTotal > 0
-      ? [{ name: 'mais_categorias', value: hiddenCategoriesTotal }]
+      ? [{ name: 'outros', value: hiddenCategoriesTotal }]
       : []),
-    ...(explicitOthers ? [explicitOthers] : []),
   ]
 
   const donutLegendItems = expenseByCategory
@@ -825,6 +824,18 @@ function App() {
     'bill_payment',
   ]
 
+  const donutTotal = expenseByCategory.reduce(
+    (accumulator, item) => accumulator + Number(item.value || 0),
+    0
+  )
+
+  function formatDonutPercentage(value) {
+    if (!donutTotal) return '0%'
+
+    const percentage = (Number(value || 0) / donutTotal) * 100
+
+    return `${percentage.toFixed(1).replace('.', ',')}%`
+  }
 
 
   const groupedExpenses = {}
@@ -1117,7 +1128,10 @@ function App() {
                           <span>{formatCategory(item.name)}</span>
                         </div>
 
-                        <strong>{formatCurrency(item.value)}</strong>
+                        <div className="donut-legend-values">
+                          <strong>{formatCurrency(item.value)}</strong>
+                          <span>{formatDonutPercentage(item.value)}</span>
+                        </div>
                       </div>
                     ))}
 

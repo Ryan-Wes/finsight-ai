@@ -141,7 +141,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
-  padding: 2px 4px 0;
+    padding: 0 4px 0;
 }
 
 .dashboard-welcome h1 {
@@ -173,13 +173,14 @@
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(150px, 0.8fr)) minmax(300px, 1.05fr);
+  grid-template-columns: repeat(3, minmax(150px, 0.70fr)) minmax(315px, 1.09fr);
   grid-template-areas:
-    "welcome welcome welcome donut"
+    "welcome welcome welcome welcome"
     "income expenses balance donut";
-  grid-template-rows: 58px 165px;
+  grid-template-rows: 44px 175px;
   gap: 14px;
   align-items: stretch;
+  margin-bottom: 10px;
 }
 
 .kpi-income {
@@ -203,7 +204,7 @@
 
 
 .kpi-card {
-  height: 165px;
+  height: 185px;
   min-height: 150px;
   display: flex;
   flex-direction: column;
@@ -320,7 +321,8 @@
 
 .donut-card {
   grid-area: donut;
-  min-height: 138px;
+  height: 185px;
+  min-height: 185px;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -383,11 +385,29 @@
   flex-shrink: 0;
 }
 
-.donut-legend-item strong {
+.donut-legend-values {
+  display: grid;
+  grid-template-columns: 82px 42px;
+  column-gap: 8px;
+  align-items: center;
+  justify-content: end;
+  flex-shrink: 0;
+}
+
+.donut-legend-values strong {
   font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
   white-space: nowrap;
+  text-align: right;
+}
+
+.donut-legend-values span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  text-align: right;
 }
 
 .donut-legend-empty {
@@ -401,7 +421,7 @@
 }
 
 .section-spacing {
-  margin-bottom: 14px;
+  margin-bottom: 22px;
 }
 
 .ai-strip {
@@ -425,6 +445,7 @@
 
 
 .ai-insights {
+  margin-top: 10px;
   margin-bottom: 14px;
 }
 
@@ -499,6 +520,7 @@
 
 .dashboard-fade-in {
   animation: dashboardFadeIn 0.42s ease-out both;
+  background-color: #92d4f7;
 }
 
 @keyframes dashboardFadeIn {
@@ -513,4 +535,5 @@
     transform: translateY(0) scale(1);
     filter: blur(0);
   }
+
 }

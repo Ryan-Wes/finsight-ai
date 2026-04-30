@@ -37,7 +37,7 @@ CATEGORY_SCHEMA = {
     },
     "moradia": {
         "label": "Moradia",
-        "color": "#fde68a",
+        "color": "#e54ba4",
         "subcategories": {
             "internet": "Internet",
             "aluguel": "Aluguel",
@@ -46,7 +46,7 @@ CATEGORY_SCHEMA = {
     },
     "carro": {
         "label": "Carro",
-        "color": "#e54ba4",
+        "color": "#92d4f7",
         "subcategories": {
             "combustivel": "Combustível",
             "manutencao": "Manutenção",
@@ -114,6 +114,13 @@ CATEGORY_SCHEMA = {
         "color": "#a8a8b3",
         "subcategories": {
             "nao_identificado": "Não identificado",
+        },
+    },
+    "outros": {
+        "label": "Outros",
+        "color": "#ffd",
+        "subcategories": {
+            "outros": "Outros",
         },
     },
 }
