@@ -774,11 +774,22 @@ def create_manual_transaction(data: dict, user_id: str) -> dict:
         if not source_name:
             return {"success": False, "message": "Informe a fonte da transação"}
 
-        if not main_category or not subcategory:
-            return {"success": False, "message": "Categoria incompleta"}
+        if direction == "out":
+            if not main_category or not subcategory:
+                return {"success": False, "message": "Categoria incompleta"}
 
-        if not is_valid_category_selection(main_category, subcategory):
-            return {"success": False, "message": "Categoria inválida"}
+            if not is_valid_category_selection(main_category, subcategory):
+                return {"success": False, "message": "Categoria inválida"}
+
+        if direction == "in":
+            main_category = "movimentacoes"
+
+            if transaction_type == "pix_in":
+                subcategory = "pix_recebido"
+            elif transaction_type == "transfer_in":
+                subcategory = "transferencia_recebida"
+            else:
+                subcategory = "transferencia_recebida"
 
         competency_month = transaction_date[:7]
 

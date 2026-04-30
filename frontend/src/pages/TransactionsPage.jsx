@@ -129,6 +129,7 @@ function TransactionsPage() {
     transaction_date: '',
     description: '',
     amount: '',
+    amountDisplay: '',
     direction: 'out',
     transaction_type: 'purchase',
     main_category: '',
@@ -637,6 +638,17 @@ function TransactionsPage() {
     })
   }
 
+  function formatCurrencyInput(value) {
+    const numeric = value.replace(/\D/g, '')
+
+    const number = Number(numeric) / 100
+
+    return number.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    })
+  }
+
   function formatFileSize(sizeInBytes) {
     if (!sizeInBytes) return '0 KB'
 
@@ -679,6 +691,7 @@ function TransactionsPage() {
       transaction_date: '',
       description: '',
       amount: '',
+      amountDisplay: '',
       direction: 'out',
       transaction_type: 'purchase',
       main_category: '',
@@ -709,6 +722,51 @@ function TransactionsPage() {
       const next = {
         ...prev,
         [field]: value,
+      }
+
+      if (field === 'amount') {
+        const numeric = value.replace(/\D/g, '')
+        const number = Number(numeric) / 100
+
+        next.amount = number
+        next.amountDisplay = number.toLocaleString('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        })
+
+        return next
+      }
+
+      if (field === 'direction') {
+        if (value === 'in') {
+          next.transaction_type = 'transfer_in'
+          next.main_category = ''
+          next.subcategory = ''
+          next.source_type = 'bank_account'
+        }
+
+        if (value === 'out') {
+          next.transaction_type = 'purchase'
+        }
+      }
+
+      if (field === 'transaction_type') {
+        if (value === 'pix_in' || value === 'transfer_in') {
+          next.direction = 'in'
+          next.main_category = ''
+          next.subcategory = ''
+          next.source_type = 'bank_account'
+        }
+
+        if (
+          value === 'purchase' ||
+          value === 'pix_out' ||
+          value === 'transfer_out' ||
+          value === 'bill_payment' ||
+          value === 'bank_transaction'
+        ) {
+          next.direction = 'out'
+        }
       }
 
       if (field === 'main_category') {
@@ -742,8 +800,8 @@ function TransactionsPage() {
       return
     }
 
-    if (!main_category || !subcategory) {
-      setFormError('Selecione categoria e subcategoria.')
+    if (direction === 'out' && (!main_category || !subcategory)) {
+      setFormError('Selecione categoria e subcategoria para a saída.')
       return
     }
 
@@ -775,8 +833,8 @@ function TransactionsPage() {
             amount: finalAmount,
             direction,
             transaction_type,
-            main_category,
-            subcategory,
+            main_category: direction === 'in' ? '' : main_category,
+            subcategory: direction === 'in' ? '' : subcategory,
             source_name: source_name.trim().toLowerCase(),
             source_type,
           }),
@@ -853,8 +911,8 @@ function TransactionsPage() {
       setAiSuggestion(null)
 
       const response = await authFetch(
-  '/api/ai/suggest-category',
-  {
+        '/api/ai/suggest-category',
+        {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -985,8 +1043,8 @@ function TransactionsPage() {
       setFormError('')
 
       const response = await authFetch(
-  `/api/transactions/${selectedTransaction.id}/category`,
-  {
+        `/api/transactions/${selectedTransaction.id}/category`,
+        {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -1055,8 +1113,8 @@ function TransactionsPage() {
       setFormError('')
 
       const response = await authFetch(
-  '/api/transactions/bulk-category',
-  {
+        '/api/transactions/bulk-category',
+        {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -2249,13 +2307,13 @@ function TransactionsPage() {
                 <div className="form-field">
                   <label>Valor</label>
                   <input
-                    type="number"
-                    step="0.01"
-                    placeholder="0,00"
-                    value={manualTransactionForm.amount}
+                    type="text"
+                    value={manualTransactionForm.amountDisplay || ''}
                     onChange={(e) =>
                       handleManualTransactionChange('amount', e.target.value)
                     }
+                    placeholder="R$ 0,00"
+                    className="modal-input"
                   />
                 </div>
 
@@ -2292,53 +2350,64 @@ function TransactionsPage() {
                       handleManualTransactionChange('transaction_type', e.target.value)
                     }
                   >
-                    <option value="purchase">Compra</option>
-                    <option value="pix_out">Pix Enviado</option>
-                    <option value="pix_in">Pix Recebido</option>
-                    <option value="transfer_out">Transferência Enviada</option>
-                    <option value="transfer_in">Transferência Recebida</option>
-                    <option value="bill_payment">Pagamento de Boleto</option>
-                    <option value="refund">Estorno</option>
-                    <option value="bank_transaction">Movimentação Bancária</option>
-                  </select>
-                </div>
-
-                <div className="form-field">
-                  <label>Categoria principal</label>
-                  <select
-                    value={manualTransactionForm.main_category}
-                    onChange={(e) =>
-                      handleManualTransactionChange('main_category', e.target.value)
-                    }
-                  >
-                    <option value="">Selecione</option>
-                    {categorySchema.map((category) => (
-                      <option key={category.key} value={category.key}>
-                        {category.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-field">
-                  <label>Subcategoria</label>
-                  <select
-                    value={manualTransactionForm.subcategory}
-                    onChange={(e) =>
-                      handleManualTransactionChange('subcategory', e.target.value)
-                    }
-                    disabled={!manualTransactionForm.main_category}
-                  >
-                    <option value="">Selecione</option>
-                    {(subcategoryMap[manualTransactionForm.main_category] || []).map(
-                      (subKey) => (
-                        <option key={subKey} value={subKey}>
-                          {formatCategoryLabel(subKey)}
-                        </option>
-                      )
+                    {manualTransactionForm.direction === 'out' ? (
+                      <>
+                        <option value="purchase">Compra</option>
+                        <option value="pix_out">Pix Enviado</option>
+                        <option value="transfer_out">Transferência Enviada</option>
+                        <option value="bill_payment">Pagamento de Boleto</option>
+                        <option value="bank_transaction">Movimentação Bancária</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="transfer_in">Salário / Transferência Recebida</option>
+                        <option value="pix_in">Pix Recebido</option>
+                      </>
                     )}
                   </select>
                 </div>
+
+                {manualTransactionForm.direction === 'out' && (
+                  <>
+                    <div className="form-field">
+                      <label>Categoria principal</label>
+                      <select
+                        value={manualTransactionForm.main_category}
+                        onChange={(e) =>
+                          handleManualTransactionChange('main_category', e.target.value)
+                        }
+                      >
+                        <option value="">Selecione</option>
+                        {categorySchema.map((category) => (
+                          <option key={category.key} value={category.key}>
+                            {category.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-field">
+                      <label>Subcategoria</label>
+                      <select
+                        value={manualTransactionForm.subcategory}
+                        onChange={(e) =>
+                          handleManualTransactionChange('subcategory', e.target.value)
+                        }
+                        disabled={!manualTransactionForm.main_category}
+                      >
+                        <option value="">Selecione</option>
+                        {(subcategoryMap[manualTransactionForm.main_category] || []).map(
+                          (subKey) => (
+                            <option key={subKey} value={subKey}>
+                              {formatCategoryLabel(subKey)}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </div>
+
+                  </>
+                )}
 
                 <div className="form-field">
                   <label>Origem financeira</label>
