@@ -516,28 +516,3 @@
   border-color: rgba(167, 139, 250, 0.45);
 }
 
-.typewriter::after {
-  content: '';
-  display: inline-block;
-  width: 2px;
-  height: 14px;
-  margin-left: 4px;
-  transform: translateY(2px);
-  border-radius: 999px;
-  background: rgba(167, 139, 250, 0.75);
-  animation: blink 1s infinite;
-}
-
-@keyframes blink {
-
-  0%,
-  50%,
-  100% {
-    opacity: 1;
-  }
-
-  55%,
-  95% {
-    opacity: 0;
-  }
-}
