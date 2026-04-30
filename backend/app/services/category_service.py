@@ -37,7 +37,7 @@ CATEGORY_SCHEMA = {
     },
     "moradia": {
         "label": "Moradia",
-        "color": "#8b5cf6",
+        "color": "#fde68a",
         "subcategories": {
             "internet": "Internet",
             "aluguel": "Aluguel",
@@ -55,7 +55,7 @@ CATEGORY_SCHEMA = {
     },
     "alimentacao": {
         "label": "Alimentação",
-        "color": "#86efac",
+        "color": "#8b5cf6",
         "subcategories": {
             "mercado": "Mercado",
             "restaurante": "Restaurante",
